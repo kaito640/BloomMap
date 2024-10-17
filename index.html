@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Radial Clusters with Aligned Dots</title>
+  <title>Radial Clusters with Word Clouds</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="d3.layout.cloud.js"></script> <!-- Ensure this script is loaded locally -->
   <style>
     body {
       font-family: sans-serif;
@@ -19,84 +20,114 @@
   <canvas id="canvas" width="960" height="960"></canvas>
   <script>
     const numClusters = 10; // We are working with 10 clusters
+    const topNWords = 100; // For each cluster, we'll display the top 3 words
 
-    Promise.all([
-      d3.csv("cluster_summary.csv"),
-      d3.csv("global_summary.csv")
-    ]).then(([clusterData, globalData]) => {
+// Draw word clouds for clusters and central word cloud
+Promise.all([
+  d3.csv("cluster_summary.csv"),
+  d3.csv("global_summary.csv")
+]).then(([clusterData, globalData]) => {
 
-      const canvas = document.getElementById('canvas');
-      const ctx = canvas.getContext('2d');
-      const width = canvas.width;
-      const height = canvas.height;
-      const radius = Math.min(width, height) / 2;
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  const radius = Math.min(width, height) / 2;
 
-      // Arc generator for the donut layout
-      const arc = d3.arc()
-        .innerRadius(radius / 1.6)  // Inner radius for the donut chart
-        .outerRadius(radius / 1.3); // Outer radius for the donut chart
+  // Arc generator for the donut layout
+  const arc = d3.arc()
+    .innerRadius(radius / 1.6)
+    .outerRadius(radius / 1.3);
 
-      // Angle scale to position clusters around the donut chart
-      const clusterRadius = radius / 1.3;  // Adjusted to outer radius of the donut
-      const angleScale = d3.scaleLinear()
-        .domain([0, numClusters])
-        .range([0, 2 * Math.PI]);
+  const clusterRadius = radius / 1.3;
+  const angleScale = d3.scaleLinear()
+    .domain([0, numClusters])
+    .range([0, 2 * Math.PI]);
 
-      // Create data for clusters
-      const pie = d3.pie()
-        .value(1) // Each slice is equal size
-        .sort(null); // No sorting
+  const pie = d3.pie()
+    .value(1)
+    .sort(null);
 
-      const clusterAngles = pie(Array.from({ length: numClusters }));
+  const clusterAngles = pie(Array.from({ length: numClusters }));
 
-      // Draw the donut chart for clusters
-      clusterAngles.forEach((d, i) => {
-        ctx.beginPath();
-        ctx.arc(width / 2, height / 2, radius / 1.6, d.startAngle, d.endAngle);
-        ctx.arc(width / 2, height / 2, radius / 1.3, d.endAngle, d.startAngle, true);
-        ctx.fillStyle = d3.schemeCategory10[i % 10];
-        ctx.fill();
-        ctx.strokeStyle = "#fff";
-        ctx.lineWidth = 1;
-        ctx.stroke();
+  // Draw the donut chart for clusters
+  clusterAngles.forEach((d, i) => {
+    ctx.beginPath();
+    ctx.arc(width / 2, height / 2, radius / 1.6, d.startAngle, d.endAngle);
+    ctx.arc(width / 2, height / 2, radius / 1.3, d.endAngle, d.startAngle, true);
+    ctx.fillStyle = d3.schemeCategory10[i % 10];
+    ctx.fill();
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1;
+    ctx.stroke();
 
-        // Add cluster label inside the donut slices
-        const centroidAngle = (d.startAngle + d.endAngle) / 2;
-        const x = width / 2 + (radius / 1.45) * Math.cos(centroidAngle);
-        const y = height / 2 + (radius / 1.45) * Math.sin(centroidAngle);
-        ctx.font = "14px Arial";
-        ctx.textAlign = "center";
-        ctx.fillStyle = "#000";
-        ctx.fillText(`Cluster_${i}`, x, y);
+    const centroidAngle = (d.startAngle + d.endAngle) / 2;
+    const x = width / 2 + (radius / 1.45) * Math.cos(centroidAngle);
+    const y = height / 2 + (radius / 1.45) * Math.sin(centroidAngle);
+    ctx.font = "14px Arial";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#000";
+    ctx.fillText(`Cluster_${i}`, x, y);
+  });
+
+  // Draw a central dot for the global word cloud
+  ctx.beginPath();
+  ctx.arc(width / 2, height / 2, 10, 0, 2 * Math.PI);
+  ctx.fillStyle = "red";
+  ctx.fill();
+
+  // Draw word clouds for each cluster
+  clusterAngles.forEach((d, i) => {
+    const centroidAngle = (d.startAngle + d.endAngle) / 2;
+    const x = width / 2 + (radius / 1.1) * Math.cos(centroidAngle);
+    const y = height / 2 + (radius / 1.1) * Math.sin(centroidAngle);
+
+    // Debug: Print current cluster being processed
+    console.log(`Processing Cluster_${i}...`);
+
+    // Filter and get top words for this cluster from cluster_summary.csv
+    const clusterWords = clusterData
+      .filter(row => row.cluster === `cluster_${i}`)
+      .slice(0, topNWords)
+      .map(row => ({ text: row.word, size: +row.frequency }));
+
+    console.log(`Cluster_${i} words:`, clusterWords);
+
+    // Create word cloud for this cluster
+    createWordCloud(x, y, clusterWords, ctx);
+  });
+
+  // Create central word cloud using global_summary.csv
+  const globalWords = globalData
+    .slice(0, topNWords)
+    .map(row => ({ text: row.word, size: +row.frequency }));
+  
+  createWordCloud(width / 2, height / 2, globalWords, ctx);
+
+  // Function to create word cloud at a specific coordinate (x, y)
+  function createWordCloud(centerX, centerY, words, ctx) {
+    const cloudSize = 100;  // Size of word cloud canvas
+    d3.layout.cloud().size([cloudSize, cloudSize])
+      .words(words)
+      .padding(2)
+      .rotate(() => (~~(Math.random() * 2) * 90))
+      .fontSize(d => d.size / 1000)
+      .on("end", draw)
+      .start();
+
+    function draw(words) {
+      words.forEach(word => {
+        ctx.font = `${word.size}px Arial`;
+        ctx.fillStyle = d3.schemeCategory10[Math.floor(Math.random() * 10)];
+        ctx.fillText(word.text, centerX + word.x, centerY + word.y);
       });
+    }
+  }
 
-      // Draw center dot (for global word cloud center)
-      ctx.beginPath();
-      ctx.arc(width / 2, height / 2, 10, 0, 2 * Math.PI);
-      ctx.fillStyle = "red";  // Red dot for center
-      ctx.fill();
+}).catch(error => console.error("Error loading data or drawing visualization:", error));
 
-      // Loop over and draw cluster dots aligned to the centroid of the cluster slices
-      clusterAngles.forEach((d, i) => {
-        const centroidAngle = (d.startAngle + d.endAngle) / 2;
-        const x = width / 2 + (radius / 1.1) * Math.cos(centroidAngle);  // Position outside the donut
-        const y = height / 2 + (radius / 1.1) * Math.sin(centroidAngle);
 
-        // Draw a blue dot for each cluster
-        ctx.beginPath();
-        ctx.arc(x, y, 10, 0, 2 * Math.PI);
-        ctx.fillStyle = "blue";  // Blue dot for clusters
-        ctx.fill();
-
-        // Draw cluster label near the dot
-        ctx.font = "14px Arial";
-        ctx.textAlign = "center";
-        ctx.fillStyle = "#000";
-        ctx.fillText(`Cluster ${i}`, x, y + 20);  // Offset label slightly below the dot
-      });
-
-    }).catch(error => console.error("Error loading data or drawing visualization:", error));
-  </script>
+ </script>
 </body>
 </html>
 
