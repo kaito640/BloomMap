@@ -60,6 +60,25 @@
       svg.selectAll("*").remove(); // Clear previous visualization
     }
 
+    function createBackgroundPanels(clusterAngles) {
+      const g = svg.append("g")
+        .attr("class", "background-panels")
+        .attr("transform", `translate(${width/2},${height/2})`);
+
+      const panelArc = d3.arc()
+        .innerRadius(0)
+        .outerRadius(radius * 1.2);
+
+      g.selectAll("path")
+        .data(clusterAngles)
+        .enter()
+        .append("path")
+        .attr("d", panelArc)
+        .attr("fill", (d, i) => d3.color(color(i)).brighter(1.5))
+        .attr("stroke", "none")
+        .attr("opacity", 0.3);
+    }
+
     function createVisualization() {
       initializeVisualization();
 
@@ -104,6 +123,9 @@
 
       const clusterAngles = pie(Array.from({ length: 9 }));
 
+      // Create background panels
+      createBackgroundPanels(clusterAngles);
+
       const g = svg.append("g")
         .attr("transform", `translate(${width/2},${height/2})`);
 
@@ -133,9 +155,9 @@
       createWordCloud(clusterWords[0], width/2, height/2, innerRadius * 0.9, -1);
       clusterAngles.forEach((d, i) => {
         const centroidAngle = (d.startAngle + d.endAngle) / 2;
-        const x = width/2 + (radius * 0.7) * Math.cos(centroidAngle);
-        const y = height/2 + (radius * 0.7) * Math.sin(centroidAngle);
-        createWordCloud(clusterWords[i + 1], x, y, radius * 0.22, i);
+        const x = width/2 + (radius * 0.8) * Math.cos(centroidAngle);
+        const y = height/2 + (radius * 0.8) * Math.sin(centroidAngle);
+        createWordCloud(clusterWords[i + 1], x, y, radius * 0.25, i);
       });
     }
 
