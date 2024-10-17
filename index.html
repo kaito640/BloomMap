@@ -27,15 +27,16 @@
   <script>
     const numClusters = 10;
     const topNWords = 100;
+    const padding = 5; // Padding around shapes
 
     d3.csv("cluster_summary.csv").then(clusterData => {
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
       const width = canvas.width;
       const height = canvas.height;
-      const radius = Math.min(width, height) / 2;
+      const radius = Math.min(width, height) / 2 - padding;
       
-      const innerRadius = radius * 0.3;
+      const innerRadius = radius * 0.28;
       const outerRadius = radius * 0.45;
 
       // Calculate total frequency for each word across all clusters
@@ -86,13 +87,16 @@
         ctx.lineWidth = 1;
         ctx.stroke();
 
+        // Draw cluster label in the center of the arc
         const centroidAngle = (d.startAngle + d.endAngle) / 2;
-        const x = width / 2 + (outerRadius + 10) * Math.cos(centroidAngle);
-        const y = height / 2 + (outerRadius + 10) * Math.sin(centroidAngle);
-        ctx.font = "bold 12px Arial";
+        const labelRadius = (innerRadius + outerRadius) / 2;
+        const x = width / 2 + labelRadius * Math.cos(centroidAngle);
+        const y = height / 2 + labelRadius * Math.sin(centroidAngle);
+        ctx.font = "bold 20px Ductape";
         ctx.textAlign = "center";
-        ctx.fillStyle = "#000";
-        ctx.fillText(`Cluster ${i + 1}`, x, y);
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#fff";
+        ctx.fillText(`C${i + 1}`, x, y);
       });
 
       // Draw central word cloud (cluster_0)
@@ -101,19 +105,19 @@
       // Draw word clouds for other clusters
       clusterAngles.forEach((d, i) => {
         const centroidAngle = (d.startAngle + d.endAngle) / 2;
-        const x = width / 2 + radius * 0.7 * Math.cos(centroidAngle);
-        const y = height / 2 + radius * 0.7 * Math.sin(centroidAngle);
+        const x = width / 2 + (radius * 0.7 + padding) * Math.cos(centroidAngle);
+        const y = height / 2 + (radius * 0.7 + padding) * Math.sin(centroidAngle);
 
-        createWordCloud(x, y, clusterWords[i + 1], ctx, i, radius * 0.2);
+        createWordCloud(x, y, clusterWords[i + 1], ctx, i, radius * 0.24);
       });
 
       function createWordCloud(centerX, centerY, words, ctx, clusterIndex, cloudRadius) {
         const cloudSize = cloudRadius * 2;
         d3.layout.cloud().size([cloudSize, cloudSize])
           .words(words)
-          .padding(2)
+          .padding(1)
           .rotate(() => 0)
-          .fontSize(d => Math.max(12, d.size * 2500))
+          .fontSize(d => Math.max(10, d.size * 2000))
           .on("end", draw)
           .start();
 
@@ -121,9 +125,10 @@
           words.forEach(word => {
             ctx.save();
             ctx.translate(centerX, centerY);
-            ctx.font = `bold ${word.size}px Arial`;
+            ctx.font = `${word.size}px Arial`;
             ctx.fillStyle = clusterIndex === -1 ? "#333" : d3.schemeCategory10[clusterIndex % 10];
             ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
             ctx.fillText(word.text, word.x, word.y);
             ctx.restore();
           });
