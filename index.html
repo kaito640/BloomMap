@@ -20,45 +20,55 @@
       border: 1px solid #ccc;
       margin-bottom: 20px;
     }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
+    button, input, label {
+      margin: 5px;
+    }
+    #controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 20px;
     }
   </style>
 </head>
 <body>
+  <div id="controls">
+    <label for="topNWords">Top N Words: <input type="number" id="topNWords" value="30" min="5" max="100"></label>
+    <label for="minFontSize">Min Font Size: <input type="number" id="minFontSize" value="10" min="6" max="20"></label>
+    <label for="maxFontSize">Max Font Size: <input type="number" id="maxFontSize" value="24" min="12" max="48"></label>
+    <label for="donutRadius">Donut Radius: <input type="number" id="donutRadius" value="35" min="20" max="45"></label>
+    <button id="updateViz">Update Visualization</button>
+  </div>
   <svg id="visualization" width="1000" height="1000"></svg>
   <button id="downloadSVG">Download as SVG</button>
   <script>
-    const numClusters = 10;
-    const topNWords = 30;
-    const padding = 5;
+    let svg, width, height, radius, innerRadius, outerRadius, color;
+    let clusterData, wordTotalFreq;
 
-    const svg = d3.select("#visualization");
-    const width = +svg.attr("width");
-    const height = +svg.attr("height");
-    const radius = Math.min(width, height) / 2 - padding;
-    
-    const innerRadius = radius * 0.3;
-    const outerRadius = radius * 0.35;
+    function initializeVisualization() {
+      svg = d3.select("#visualization");
+      width = +svg.attr("width");
+      height = +svg.attr("height");
+      radius = Math.min(width, height) / 2 - 20;
+      
+      const donutRadiusPercent = +document.getElementById("donutRadius").value / 100;
+      innerRadius = radius * (donutRadiusPercent - 0.05);
+      outerRadius = radius * donutRadiusPercent;
 
-    d3.csv("cluster_summary.csv").then(clusterData => {
-      // Calculate total frequency for each word across all clusters
-      const wordTotalFreq = d3.rollup(clusterData, 
-        v => d3.sum(v, d => +d.frequency),
-        d => d.word
-      );
+      color = d3.scaleOrdinal(d3.schemeCategory10);
 
-      // Function to calculate TF-IDF like score
-      function calculateScore(word, clusterFreq, totalDocs) {
-        const tf = clusterFreq / totalDocs;
-        const idf = Math.log(numClusters / (wordTotalFreq.get(word) || 1));
-        return tf * idf;
-      }
+      svg.selectAll("*").remove(); // Clear previous visualization
+    }
+
+    function createVisualization() {
+      initializeVisualization();
+
+      const topNWords = +document.getElementById("topNWords").value;
+      const minFontSize = +document.getElementById("minFontSize").value;
+      const maxFontSize = +document.getElementById("maxFontSize").value;
 
       // Process words for each cluster
-      const clusterWords = d3.range(numClusters).map(i => {
+      const clusterWords = d3.range(10).map(i => {
         const cluster = `cluster_${i}`;
         const words = clusterData.filter(d => d.cluster === cluster);
         const totalFreq = d3.sum(words, d => +d.frequency);
@@ -71,6 +81,18 @@
         .slice(0, topNWords);
       });
 
+      // Normalize sizes across all clusters
+      const allSizes = clusterWords.flat().map(d => d.size);
+      const sizeScale = d3.scaleLinear()
+        .domain([d3.min(allSizes), d3.max(allSizes)])
+        .range([minFontSize, maxFontSize]);
+
+      clusterWords.forEach(cluster => {
+        cluster.forEach(word => {
+          word.size = sizeScale(word.size);
+        });
+      });
+
       // Draw the thin donut chart
       const arc = d3.arc()
         .innerRadius(innerRadius)
@@ -80,7 +102,7 @@
         .value(1)
         .sort(null);
 
-      const clusterAngles = pie(Array.from({ length: numClusters - 1 }));
+      const clusterAngles = pie(Array.from({ length: 9 }));
 
       const g = svg.append("g")
         .attr("transform", `translate(${width/2},${height/2})`);
@@ -90,7 +112,7 @@
         .enter()
         .append("path")
         .attr("d", arc)
-        .attr("fill", (d, i) => d3.schemeCategory10[i % 10])
+        .attr("fill", (d, i) => color(i))
         .attr("stroke", "white")
         .attr("stroke-width", 1);
 
@@ -107,46 +129,59 @@
         .attr("font-weight", "bold")
         .text((d, i) => `C${i + 1}`);
 
-      // Function to create word cloud
-      function createWordCloud(words, x, y, cloudRadius, color) {
-        const cloudSize = cloudRadius * 2;
-        d3.layout.cloud()
-          .size([cloudSize, cloudSize])
-          .words(words)
-          .padding(1)
-          .rotate(() => 0)
-          .fontSize(d => Math.max(10, d.size * 2000))
-          .on("end", draw)
-          .start();
-
-        function draw(words) {
-          svg.append("g")
-            .attr("transform", `translate(${x},${y})`)
-            .selectAll("text")
-            .data(words)
-            .enter()
-            .append("text")
-            .style("font-size", d => `${d.size}px`)
-            .style("fill", color)
-            .attr("text-anchor", "middle")
-            .attr("transform", d => `translate(${d.x},${d.y})`)
-            .text(d => d.text);
-        }
-      }
-
-      // Create central word cloud (cluster_0)
-      createWordCloud(clusterWords[0], width/2, height/2, innerRadius * 0.9, "#333");
-
-      // Create word clouds for other clusters
+      // Create word clouds
+      createWordCloud(clusterWords[0], width/2, height/2, innerRadius * 0.9, -1);
       clusterAngles.forEach((d, i) => {
         const centroidAngle = (d.startAngle + d.endAngle) / 2;
-        const x = width/2 + (radius * 0.7 + padding) * Math.cos(centroidAngle);
-        const y = height/2 + (radius * 0.7 + padding) * Math.sin(centroidAngle);
-        createWordCloud(clusterWords[i + 1], x, y, radius * 0.22, d3.schemeCategory10[i % 10]);
+        const x = width/2 + (radius * 0.7) * Math.cos(centroidAngle);
+        const y = height/2 + (radius * 0.7) * Math.sin(centroidAngle);
+        createWordCloud(clusterWords[i + 1], x, y, radius * 0.22, i);
       });
+    }
 
-      // Set up download button
-      document.getElementById('downloadSVG').addEventListener('click', () => {
+    function createWordCloud(words, x, y, cloudRadius, clusterIndex) {
+      const cloudSize = cloudRadius * 2;
+      d3.layout.cloud()
+        .size([cloudSize, cloudSize])
+        .words(words)
+        .padding(1)
+        .rotate(() => 0)
+        .fontSize(d => d.size)
+        .on("end", draw)
+        .start();
+
+      function draw(words) {
+        svg.append("g")
+          .attr("transform", `translate(${x},${y})`)
+          .selectAll("text")
+          .data(words)
+          .enter()
+          .append("text")
+          .style("font-size", d => `${d.size}px`)
+          .style("fill", clusterIndex === -1 ? "#333" : color(clusterIndex))
+          .attr("text-anchor", "middle")
+          .attr("transform", d => `translate(${d.x},${d.y})`)
+          .text(d => d.text);
+      }
+    }
+
+    function calculateScore(word, clusterFreq, totalDocs) {
+      const tf = clusterFreq / totalDocs;
+      const idf = Math.log(10 / (wordTotalFreq.get(word) || 1));
+      return tf * idf;
+    }
+
+    d3.csv("cluster_summary.csv").then(data => {
+      clusterData = data;
+      wordTotalFreq = d3.rollup(clusterData, 
+        v => d3.sum(v, d => +d.frequency),
+        d => d.word
+      );
+      createVisualization();
+
+      document.getElementById("updateViz").addEventListener("click", createVisualization);
+
+      document.getElementById("downloadSVG").addEventListener("click", () => {
         const svgData = new XMLSerializer().serializeToString(svg.node());
         const svgBlob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
         const svgUrl = URL.createObjectURL(svgBlob);
@@ -157,7 +192,6 @@
         downloadLink.click();
         document.body.removeChild(downloadLink);
       });
-
     }).catch(error => console.error("Error loading data or drawing visualization:", error));
   </script>
 </body>
