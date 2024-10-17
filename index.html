@@ -3,35 +3,100 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cluster Radial Visualization</title>
+  <title>Radial Clusters with Aligned Dots</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-cloud/1.2.5/d3.layout.cloud.min.js"></script>
-
   <style>
-    /* Basic styling for the SVG */
     body {
       font-family: sans-serif;
     }
-
-    svg {
-      width: 100%;
-      height: 100vh;
-    }
-
-    .cluster {
-      fill-opacity: 0.7;
-    }
-
-    .cluster-text {
-      font-size: 12px;
-      fill: #333;
+    canvas {
+      position: absolute;
+      border: 1px solid black;
     }
   </style>
 </head>
 <body>
-  <svg></svg>
+  <canvas id="canvas" width="960" height="960"></canvas>
+  <script>
+    const numClusters = 10; // We are working with 10 clusters
 
-  <script src="script.js"></script>
+    Promise.all([
+      d3.csv("cluster_summary.csv"),
+      d3.csv("global_summary.csv")
+    ]).then(([clusterData, globalData]) => {
+
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+      const radius = Math.min(width, height) / 2;
+
+      // Arc generator for the donut layout
+      const arc = d3.arc()
+        .innerRadius(radius / 1.6)  // Inner radius for the donut chart
+        .outerRadius(radius / 1.3); // Outer radius for the donut chart
+
+      // Angle scale to position clusters around the donut chart
+      const clusterRadius = radius / 1.3;  // Adjusted to outer radius of the donut
+      const angleScale = d3.scaleLinear()
+        .domain([0, numClusters])
+        .range([0, 2 * Math.PI]);
+
+      // Create data for clusters
+      const pie = d3.pie()
+        .value(1) // Each slice is equal size
+        .sort(null); // No sorting
+
+      const clusterAngles = pie(Array.from({ length: numClusters }));
+
+      // Draw the donut chart for clusters
+      clusterAngles.forEach((d, i) => {
+        ctx.beginPath();
+        ctx.arc(width / 2, height / 2, radius / 1.6, d.startAngle, d.endAngle);
+        ctx.arc(width / 2, height / 2, radius / 1.3, d.endAngle, d.startAngle, true);
+        ctx.fillStyle = d3.schemeCategory10[i % 10];
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Add cluster label inside the donut slices
+        const centroidAngle = (d.startAngle + d.endAngle) / 2;
+        const x = width / 2 + (radius / 1.45) * Math.cos(centroidAngle);
+        const y = height / 2 + (radius / 1.45) * Math.sin(centroidAngle);
+        ctx.font = "14px Arial";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#000";
+        ctx.fillText(`Cluster_${i}`, x, y);
+      });
+
+      // Draw center dot (for global word cloud center)
+      ctx.beginPath();
+      ctx.arc(width / 2, height / 2, 10, 0, 2 * Math.PI);
+      ctx.fillStyle = "red";  // Red dot for center
+      ctx.fill();
+
+      // Loop over and draw cluster dots aligned to the centroid of the cluster slices
+      clusterAngles.forEach((d, i) => {
+        const centroidAngle = (d.startAngle + d.endAngle) / 2;
+        const x = width / 2 + (radius / 1.1) * Math.cos(centroidAngle);  // Position outside the donut
+        const y = height / 2 + (radius / 1.1) * Math.sin(centroidAngle);
+
+        // Draw a blue dot for each cluster
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, 2 * Math.PI);
+        ctx.fillStyle = "blue";  // Blue dot for clusters
+        ctx.fill();
+
+        // Draw cluster label near the dot
+        ctx.font = "14px Arial";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#000";
+        ctx.fillText(`Cluster ${i}`, x, y + 20);  // Offset label slightly below the dot
+      });
+
+    }).catch(error => console.error("Error loading data or drawing visualization:", error));
+  </script>
 </body>
 </html>
 

@@ -11,18 +11,17 @@ Promise.all([
   const svg = d3.select("svg")
     .attr("width", width)
     .attr("height", height)
-  .append("g")
+    .append("g")
     .attr("transform", `translate(${width / 2}, ${height / 2})`);
   
   // Group data by clusters
   const clusters = d3.group(clusterData, d => d.cluster);
   
-  // Create a scale for the angles
   const angleScale = d3.scaleLinear()
     .domain([0, clusters.size])
     .range([0, 2 * Math.PI]);
   
-  const clusterRadius = radius / 3;  // To position clusters closer to the center
+  const clusterRadius = radius / 3;
   
   // Create an arc generator
   const arc = d3.arc()
@@ -35,31 +34,31 @@ Promise.all([
   svg.selectAll(".cluster")
     .data(Array.from(clusters.keys()))
     .enter().append("path")
-      .attr("class", "cluster")
-      .attr("d", (d, i) => arc(d, i))
-      .attr("fill", (d, i) => d3.schemeCategory10[i % 10])
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 2);
+    .attr("class", "cluster")
+    .attr("d", (d, i) => arc(d, i))
+    .attr("fill", (d, i) => d3.schemeCategory10[i % 10])
+    .attr("stroke", "#fff")
+    .attr("stroke-width", 2);
   
   // Add text for each cluster centered on the arc
   svg.selectAll(".cluster-text")
     .data(Array.from(clusters.keys()))
     .enter().append("text")
-      .attr("transform", (d, i) => {
-        const [x, y] = arc.centroid(d, i);  // Get centroid of the arc
-        return `translate(${x}, ${y})`;
-      })
-      .attr("text-anchor", "middle")
-      .attr("dominant-baseline", "middle")
-      .text(d => d)
-      .style("font-size", "14px");  // Adjust the font size as needed
+    .attr("transform", (d, i) => {
+      const [x, y] = arc.centroid(d, i);
+      return `translate(${x}, ${y})`;
+    })
+    .attr("text-anchor", "middle")
+    .attr("dominant-baseline", "middle")
+    .text(d => d)
+    .style("font-size", "14px");
   
-  // ======== WORD CLOUD IN THE CENTER ========
+  // ======== WORD CLOUD IN THE CENTER USING d3-cloud ========
 
-  // Define the word cloud layout
-  const wordCloudRadius = clusterRadius - 100; // Adjust size for the word cloud
+  // Limit number of words for the word cloud
+  const topXWords = globalData.slice(0, 50); // X most frequent words
   
-  const topXWords = globalData.slice(0, 50); // X most frequent words, modify as needed
+  const wordCloudRadius = clusterRadius - 100; // Adjust size for the word cloud
   
   const layout = d3.layout.cloud()
     .size([wordCloudRadius * 2, wordCloudRadius * 2])
@@ -82,6 +81,5 @@ Promise.all([
         .attr("transform", d => `translate(${[d.x, d.y]}) rotate(${d.rotate})`)
         .text(d => d.text);
   }
-
-});
+}).catch(error => console.error("Error loading data or drawing visualization:", error));
 
