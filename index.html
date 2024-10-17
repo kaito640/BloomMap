@@ -8,19 +8,25 @@
   <script src="d3.layout.cloud.js"></script>
   <style>
     body {
-      font-family: sans-serif;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
     }
     canvas {
-      position: absolute;
-      border: 1px solid black;
+      border: 1px solid #ccc;
     }
   </style>
 </head>
 <body>
-  <canvas id="canvas" width="960" height="960"></canvas>
+  <canvas id="canvas" width="1000" height="1000"></canvas>
   <script>
     const numClusters = 10;
-    const topNWords = 10;
+    const topNWords = 100;
 
     d3.csv("cluster_summary.csv").then(clusterData => {
       const canvas = document.getElementById('canvas');
@@ -28,6 +34,9 @@
       const width = canvas.width;
       const height = canvas.height;
       const radius = Math.min(width, height) / 2;
+      
+      const innerRadius = radius * 0.3;
+      const outerRadius = radius * 0.45;
 
       // Calculate total frequency for each word across all clusters
       const wordTotalFreq = d3.rollup(clusterData, 
@@ -56,21 +65,21 @@
         .slice(0, topNWords);
       });
 
-      // Draw the donut chart
+      // Draw the thin donut chart
       const arc = d3.arc()
-        .innerRadius(radius / 1.6)
-        .outerRadius(radius / 1.3);
+        .innerRadius(innerRadius)
+        .outerRadius(outerRadius);
 
       const pie = d3.pie()
         .value(1)
         .sort(null);
 
-      const clusterAngles = pie(Array.from({ length: numClusters }));
+      const clusterAngles = pie(Array.from({ length: numClusters - 1 }));
 
       clusterAngles.forEach((d, i) => {
         ctx.beginPath();
-        ctx.arc(width / 2, height / 2, radius / 1.6, d.startAngle, d.endAngle);
-        ctx.arc(width / 2, height / 2, radius / 1.3, d.endAngle, d.startAngle, true);
+        ctx.arc(width / 2, height / 2, innerRadius, d.startAngle, d.endAngle);
+        ctx.arc(width / 2, height / 2, outerRadius, d.endAngle, d.startAngle, true);
         ctx.fillStyle = d3.schemeCategory10[i % 10];
         ctx.fill();
         ctx.strokeStyle = "#fff";
@@ -78,30 +87,33 @@
         ctx.stroke();
 
         const centroidAngle = (d.startAngle + d.endAngle) / 2;
-        const x = width / 2 + (radius / 1.45) * Math.cos(centroidAngle);
-        const y = height / 2 + (radius / 1.45) * Math.sin(centroidAngle);
-        ctx.font = "14px Arial";
+        const x = width / 2 + (outerRadius + 10) * Math.cos(centroidAngle);
+        const y = height / 2 + (outerRadius + 10) * Math.sin(centroidAngle);
+        ctx.font = "bold 12px Arial";
         ctx.textAlign = "center";
         ctx.fillStyle = "#000";
-        ctx.fillText(`Cluster_${i}`, x, y);
+        ctx.fillText(`Cluster ${i + 1}`, x, y);
       });
 
-      // Draw word clouds
+      // Draw central word cloud (cluster_0)
+      createWordCloud(width / 2, height / 2, clusterWords[0], ctx, -1, innerRadius * 0.9);
+
+      // Draw word clouds for other clusters
       clusterAngles.forEach((d, i) => {
         const centroidAngle = (d.startAngle + d.endAngle) / 2;
-        const x = width / 2 + (radius / 1.1) * Math.cos(centroidAngle);
-        const y = height / 2 + (radius / 1.1) * Math.sin(centroidAngle);
+        const x = width / 2 + radius * 0.7 * Math.cos(centroidAngle);
+        const y = height / 2 + radius * 0.7 * Math.sin(centroidAngle);
 
-        createWordCloud(x, y, clusterWords[i], ctx, i);
+        createWordCloud(x, y, clusterWords[i + 1], ctx, i, radius * 0.2);
       });
 
-      function createWordCloud(centerX, centerY, words, ctx, clusterIndex) {
-        const cloudSize = 120;
+      function createWordCloud(centerX, centerY, words, ctx, clusterIndex, cloudRadius) {
+        const cloudSize = cloudRadius * 2;
         d3.layout.cloud().size([cloudSize, cloudSize])
           .words(words)
           .padding(2)
           .rotate(() => 0)
-          .fontSize(d => Math.max(12, d.size * 1000))
+          .fontSize(d => Math.max(12, d.size * 2500))
           .on("end", draw)
           .start();
 
@@ -109,8 +121,8 @@
           words.forEach(word => {
             ctx.save();
             ctx.translate(centerX, centerY);
-            ctx.font = `${word.size}px Arial`;
-            ctx.fillStyle = d3.schemeCategory10[clusterIndex % 10];
+            ctx.font = `bold ${word.size}px Arial`;
+            ctx.fillStyle = clusterIndex === -1 ? "#333" : d3.schemeCategory10[clusterIndex % 10];
             ctx.textAlign = "center";
             ctx.fillText(word.text, word.x, word.y);
             ctx.restore();
