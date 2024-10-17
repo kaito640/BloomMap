@@ -15,6 +15,7 @@ import csv
 nltk.download('punkt', quiet=True)
 
 def read_csv_robust(file_path):
+    # This function looks fine, no changes needed
     with open(file_path, 'r', encoding='utf-8') as f:
         reader = csv.reader(f)
         headers = next(reader)
@@ -35,52 +36,43 @@ def preprocess_text(text):
     tokens = word_tokenize(text)
     return ' '.join(tokens)
 
-def identify_global_words(word_freq, threshold_percentage):
+def identify_global_words(df, threshold_percentage):
     # Identify words that appear in a high percentage of documents
-    total_docs = sum(word_freq.values())
-    return {word for word, count in word_freq.items() if count / total_docs > threshold_percentage}
-
-def get_top_predictive_words(vectorizer, classifier, n_clusters, n_words, global_words):
-    feature_names = vectorizer.get_feature_names_out()
-    top_words = [[] for _ in range(n_clusters + 1)]  # +1 for global words (Cluster_0)
+    word_doc_freq = Counter()
+    total_docs = len(df)
     
-    for i in range(n_clusters):
-        word_importance = classifier.feature_importances_
-        sorted_indices = word_importance.argsort()[::-1]
-        for idx in sorted_indices:
-            word = feature_names[idx]
-            if word in global_words:
-                if len(top_words[0]) < n_words:
-                    top_words[0].append((word, word_importance[idx]))
-            else:
-                if len(top_words[i+1]) < n_words:
-                    top_words[i+1].append((word, word_importance[idx]))
-            if all(len(cluster) >= n_words for cluster in top_words):
-                break
+    for doc in df['processed_content']:
+        word_doc_freq.update(set(doc.split()))
     
-    return top_words
+    return {word for word, count in word_doc_freq.items() if count / total_docs > threshold_percentage}
 
 def process_data(file_path, n_clusters=10, top_n=50, global_word_threshold=0.5):
     df = read_csv_robust(file_path)
     df['processed_content'] = df['content'].apply(preprocess_text)
     
-    # Calculate word frequencies
-    word_freq = Counter(' '.join(df['processed_content']).split())
-    
     # Identify global words
-    global_words = identify_global_words(word_freq, global_word_threshold)
+    global_words = identify_global_words(df, global_word_threshold)
     
     vectorizer = TfidfVectorizer(max_features=10000)
     X = vectorizer.fit_transform(df['processed_content'])
     
     # K-means clustering
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
     df['cluster'] = kmeans.fit_predict(X)
     
+    # Ensure each cluster has at least one sample
+    unique_clusters = np.unique(df['cluster'])
+    if len(unique_clusters) < n_clusters:
+        print(f"Warning: Only {len(unique_clusters)} clusters were formed. Adjusting n_clusters.")
+        n_clusters = len(unique_clusters)
+    
     # Random Forest classifier
-    X_train, X_test, y_train, y_test = train_test_split(X, df['cluster'], test_size=0.2, random_state=42)
     clf = RandomForestClassifier(n_estimators=100, random_state=42)
-    clf.fit(X_train, y_train)
+    clf.fit(X, df['cluster'])
+    
+    print(f"Number of samples in each cluster: {np.bincount(df['cluster'])}")
+    print(f"Number of estimators in Random Forest: {len(clf.estimators_)}")
+    print(f"Number of global words: {len(global_words)}")
     
     top_predictive_words = get_top_predictive_words(vectorizer, clf, n_clusters, top_n, global_words)
     
@@ -93,7 +85,7 @@ def save_outputs(df, top_predictive_words, global_words, output_dir):
     
     cluster_summary = []
     for i, cluster_words in enumerate(top_predictive_words):
-        cluster_name = 'cluster_global' if i == 0 else f'cluster_{i-1}'
+        cluster_name = 'cluster_0' if i == 0 else f'cluster_{i}'
         for word, score in cluster_words:
             cluster_summary.append({
                 'cluster': cluster_name,
@@ -113,3 +105,4 @@ if __name__ == "__main__":
     save_outputs(df, top_predictive_words, global_words, output_dir)
     
     print("Results saved to output directory")
+
