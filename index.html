@@ -36,19 +36,17 @@
     <label for="topNWords">Top N Words: <input type="number" id="topNWords" value="30" min="5" max="100"></label>
     <label for="minFontSize">Min Font Size: <input type="number" id="minFontSize" value="10" min="6" max="20"></label>
     <label for="maxFontSize">Max Font Size: <input type="number" id="maxFontSize" value="32" min="12" max="48"></label>
-    <label for="donutRadius">Donut Radius: <input type="number" id="donutRadius" value="40" min="20" max="45"></label>
     <label for="innerRadiusStart">Inner Radius Start: <input type="number" id="innerRadiusStart" value="20" min="0" max="40"></label>
     <label for="innerRadiusEnd">Inner Radius End: <input type="number" id="innerRadiusEnd" value="40" min="20" max="60"></label>
-    <label for="outerRadiusStart">Outer Radius Start: <input type="number" id="outerRadiusStart" value="60" min="40" max="80"></label>
-    <label for="outerRadiusEnd">Outer Radius End: <input type="number" id="outerRadiusEnd" value="90" min="60" max="100"></label>
+    <label for="outerRadiusStart">Outer Radius Start: <input type="number" id="outerRadiusStart" value="90" min="60" max="95"></label>
+    <label for="outerRadiusEnd">Outer Radius End: <input type="number" id="outerRadiusEnd" value="95" min="65" max="100"></label>
     <button id="updateViz">Update Visualization</button>
-
   </div>
   <svg id="visualization" width="1000" height="1000"></svg>
   <button id="downloadSVG">Download as SVG</button>
 
   <script>
-    let svg, width, height, radius, innerRadius, outerRadius, color;
+    let svg, width, height, radius, innerRadiusStart, innerRadiusEnd, outerRadiusStart, outerRadiusEnd, color;
     let clusterData;
 
     function initializeVisualization() {
@@ -56,16 +54,11 @@
       width = +svg.attr("width");
       height = +svg.attr("height");
       radius = Math.min(width, height) / 2 - 20;
-  
-      const innerRadiusStart = +document.getElementById("innerRadiusStart").value / 100 * radius;
-      const innerRadiusEnd = +document.getElementById("innerRadiusEnd").value / 100 * radius;
-      const outerRadiusStart = +document.getElementById("outerRadiusStart").value / 100 * radius;
-      const outerRadiusEnd = +document.getElementById("outerRadiusEnd").value / 100 * radius;
-
-      innerRadius = innerRadiusStart;
-      outerRadius = innerRadiusEnd;
-      wordCloudInnerRadius = outerRadiusStart;
-      wordCloudOuterRadius = outerRadiusEnd;
+      
+      innerRadiusStart = +document.getElementById("innerRadiusStart").value / 100 * radius;
+      innerRadiusEnd = +document.getElementById("innerRadiusEnd").value / 100 * radius;
+      outerRadiusStart = +document.getElementById("outerRadiusStart").value / 100 * radius;
+      outerRadiusEnd = +document.getElementById("outerRadiusEnd").value / 100 * radius;
 
       color = d3.scaleOrdinal(d3.schemeCategory10);
 
@@ -79,7 +72,7 @@
 
       const panelArc = d3.arc()
         .innerRadius(0)
-        .outerRadius(radius * 1.2);
+        .outerRadius(outerRadiusEnd);
 
       g.selectAll("path")
         .data(clusterAngles)
@@ -89,24 +82,6 @@
         .attr("fill", (d, i) => d3.color(color(i)).brighter(1.5))
         .attr("stroke", "none")
         .attr("opacity", 0.3);
-    }
-
-    function createOuterRing(clusterAngles) {
-      const outerArc = d3.arc()
-        .innerRadius(wordCloudInnerRadius)
-        .outerRadius(wordCloudOuterRadius);
-
-      svg.append("g")
-        .attr("class", "outer-ring")
-        .attr("transform", `translate(${width/2},${height/2})`)
-        .selectAll("path")
-        .data(clusterAngles)
-        .enter()
-        .append("path")
-        .attr("d", outerArc)
-        .attr("fill", (d, i) => d3.color(color(i)).darker(0.5))
-        .attr("stroke", "white")
-        .attr("stroke-width", 1);
     }
 
     function createWordCloud(words, x, y, cloudRadius, clusterIndex, angle) {
@@ -148,72 +123,84 @@
 
     function createVisualization() {
       initializeVisualization();
-    
+
       const topNWords = +document.getElementById("topNWords").value;
-    
+
       const clusters = Array.from(clusterData.keys()).filter(k => k !== 'global');
       const pie = d3.pie()
         .value(1)
         .sort(null);
-    
+
       const clusterAngles = pie(clusters);
-    
+
       // Create background panels
       createBackgroundPanels(clusterAngles);
-    
+
       // Draw the inner donut chart
-      const arc = d3.arc()
-        .innerRadius(innerRadius)
-        .outerRadius(outerRadius);
-    
+      const innerArc = d3.arc()
+        .innerRadius(innerRadiusStart)
+        .outerRadius(innerRadiusEnd);
+
       const g = svg.append("g")
         .attr("transform", `translate(${width/2},${height/2})`);
-    
-      g.selectAll("path")
+
+      g.selectAll("path.inner")
         .data(clusterAngles)
         .enter()
         .append("path")
-        .attr("d", arc)
+        .attr("class", "inner")
+        .attr("d", innerArc)
         .attr("fill", (d, i) => color(i))
         .attr("stroke", "white")
         .attr("stroke-width", 1);
-    
-      // Create outer ring
-      createOuterRing(clusterAngles);
-    
+
+      // Draw the outer ring
+      const outerArc = d3.arc()
+        .innerRadius(outerRadiusStart)
+        .outerRadius(outerRadiusEnd);
+
+      g.selectAll("path.outer")
+        .data(clusterAngles)
+        .enter()
+        .append("path")
+        .attr("class", "outer")
+        .attr("d", outerArc)
+        .attr("fill", (d, i) => d3.color(color(i)).darker(0.5))
+        .attr("stroke", "white")
+        .attr("stroke-width", 1);
+
       // Add cluster labels
       g.selectAll("text.cluster-label")
         .data(clusterAngles)
         .enter()
         .append("text")
         .attr("class", "cluster-label")
-        .attr("transform", d => `translate(${arc.centroid(d)})`)
+        .attr("transform", d => `translate(${innerArc.centroid(d)})`)
         .attr("text-anchor", "middle")
         .attr("fill", "white")
         .attr("font-size", "10px")
         .attr("font-weight", "bold")
         .text(d => d.data);
-    
+
       // Create word clouds
       const globalCluster = clusterData.get('global');
       if (globalCluster) {
-        createWordCloud(globalCluster.slice(0, topNWords), width/2, height/2, innerRadius * 0.9, 'global', 0);
+        createWordCloud(globalCluster.slice(0, topNWords), width/2, height/2, innerRadiusStart * 0.9, 'global', 0);
       }
-    
+
       clusterAngles.forEach((d, i) => {
         const cluster = clusterData.get(d.data);
         if (cluster) {
           const wedgeAngle = d.endAngle - d.startAngle;
-          const centroidAngle = d.startAngle + wedgeAngle;
-          const rayRadius = (wordCloudInnerRadius + wordCloudOuterRadius) / 2;
+          const centroidAngle = d.startAngle + wedgeAngle*5;
+          const rayRadius = (innerRadiusEnd + outerRadiusStart) / 2;
           const x = width/2 + rayRadius * Math.cos(centroidAngle);
           const y = height/2 + rayRadius * Math.sin(centroidAngle);
-          const cloudRadius = (wordCloudOuterRadius - wordCloudInnerRadius) / 2 * 0.9;
+          const cloudRadius = (outerRadiusStart - innerRadiusEnd) / 2 * 0.9;
           createWordCloud(cluster.slice(0, topNWords), x, y, cloudRadius, i, centroidAngle);
         }
       });
     }
-
 
     d3.csv("processed_themes.csv").then(data => {
       clusterData = d3.group(data, d => d.cluster);
