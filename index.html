@@ -88,11 +88,30 @@
       const cloudSize = cloudRadius * 2;
       const minFontSize = +document.getElementById("minFontSize").value;
       const maxFontSize = +document.getElementById("maxFontSize").value;
-
+    
       const fontSize = d3.scaleLinear()
         .domain([d3.min(words, d => d.importance), d3.max(words, d => d.importance)])
         .range([minFontSize, maxFontSize]);
-
+    
+      // Custom rectangular spiral
+      function rectangularSpiral(size) {
+        let dx = 0, dy = 0, x = 0, y = 0;
+        return function(t) {
+          if (t < 0) t = -t;
+          if (Math.round(Math.sqrt(dx * dx + dy * dy)) < size) {
+            if ((Math.abs(dx) <= Math.abs(dy) && Math.abs(dx) < size) ||
+                (Math.abs(dy) <= Math.abs(dx) && Math.abs(dy) < size)) {
+              if (dx < 0) { dx++; } else if (dx > 0) { dx--; } else { dy++; }
+            } else {
+              if (dy < 0) { dy++; } else if (dy > 0) { dy--; } else { dx++; }
+            }
+          }
+          x += dx;
+          y += dy;
+          return [x, y];
+        };
+      }
+    
       d3.layout.cloud()
         .size([cloudSize, cloudSize])
         .words(words.map(d => ({text: d.theme, size: fontSize(d.importance)})))
@@ -100,10 +119,10 @@
         .rotate(() => 0)
         .font("Arial")
         .fontSize(d => d.size)
-        .spiral("archimedean")
+        .spiral(rectangularSpiral)
         .on("end", draw)
         .start();
-
+    
       function draw(words) {
         const g = svg.append("g")
           .attr("transform", `translate(${x},${y}) rotate(${angle * (180/Math.PI)})`);
@@ -120,6 +139,7 @@
           .text(d => d.text);
       }
     }
+
 
     function createVisualization() {
       initializeVisualization();
