@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Radial Clusters with Word Clouds</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="d3.layout.cloud.js"></script> <!-- Ensure this script is loaded locally -->
+  <script src="d3.layout.cloud.js"></script>
   <style>
     body {
       font-family: sans-serif;
@@ -19,44 +19,54 @@
 <body>
   <canvas id="canvas" width="960" height="960"></canvas>
   <script>
-    const numClusters = 10; // We are working with 10 clusters
-    const topNWords = 30; // Adjust this as needed
+    const numClusters = 10;
+    const topNWords = 10;
 
-    // Load and parse the single file, then split into two datasets
     d3.csv("cluster_summary.csv").then(clusterData => {
-
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
       const width = canvas.width;
       const height = canvas.height;
       const radius = Math.min(width, height) / 2;
 
-      // Split the data into cluster_0 (global) and the rest of the clusters
-      const globalWords = clusterData
-        .filter(row => row.cluster === 'cluster_0')
-        .sort((a, b) => +b.frequency - +a.frequency)
-        .slice(0, topNWords)
-        .map(row => ({ text: row.word, size: +row.frequency }));
+      // Calculate total frequency for each word across all clusters
+      const wordTotalFreq = d3.rollup(clusterData, 
+        v => d3.sum(v, d => +d.frequency),
+        d => d.word
+      );
 
-      const clusters_1_to_n = clusterData.filter(row => row.cluster !== 'cluster_0');
+      // Function to calculate TF-IDF like score
+      function calculateScore(word, clusterFreq, totalDocs) {
+        const tf = clusterFreq / totalDocs;
+        const idf = Math.log(numClusters / (wordTotalFreq.get(word) || 1));
+        return tf * idf;
+      }
 
-      // Arc generator for the donut layout
+      // Process words for each cluster
+      const clusterWords = d3.range(numClusters).map(i => {
+        const cluster = `cluster_${i}`;
+        const words = clusterData.filter(d => d.cluster === cluster);
+        const totalFreq = d3.sum(words, d => +d.frequency);
+        
+        return words.map(d => ({
+          text: d.word,
+          size: calculateScore(d.word, +d.frequency, totalFreq)
+        }))
+        .sort((a, b) => b.size - a.size)
+        .slice(0, topNWords);
+      });
+
+      // Draw the donut chart
       const arc = d3.arc()
         .innerRadius(radius / 1.6)
         .outerRadius(radius / 1.3);
-
-      const clusterRadius = radius / 1.3;
-      const angleScale = d3.scaleLinear()
-        .domain([1, numClusters])  // Start from cluster 1
-        .range([0, 2 * Math.PI]);
 
       const pie = d3.pie()
         .value(1)
         .sort(null);
 
-      const clusterAngles = pie(Array.from({ length: numClusters - 1 }));  // Adjust for 1-based clusters
+      const clusterAngles = pie(Array.from({ length: numClusters }));
 
-      // Draw the donut chart for clusters (excluding cluster_0)
       clusterAngles.forEach((d, i) => {
         ctx.beginPath();
         ctx.arc(width / 2, height / 2, radius / 1.6, d.startAngle, d.endAngle);
@@ -73,61 +83,41 @@
         ctx.font = "14px Arial";
         ctx.textAlign = "center";
         ctx.fillStyle = "#000";
-        ctx.fillText(`Cluster_${i + 1}`, x, y);  // Adjust for 1-based clusters
+        ctx.fillText(`Cluster_${i}`, x, y);
       });
 
-      // Draw a central dot for the global word cloud (cluster_0)
-      ctx.beginPath();
-      ctx.arc(width / 2, height / 2, 10, 0, 2 * Math.PI);
-      ctx.fillStyle = "red";
-      ctx.fill();
-
-      // Draw word clouds for each cluster (excluding cluster_0)
+      // Draw word clouds
       clusterAngles.forEach((d, i) => {
         const centroidAngle = (d.startAngle + d.endAngle) / 2;
         const x = width / 2 + (radius / 1.1) * Math.cos(centroidAngle);
         const y = height / 2 + (radius / 1.1) * Math.sin(centroidAngle);
 
-        // Get the top words for the current cluster
-        const clusterWords = clusters_1_to_n
-          .filter(row => row.cluster === `cluster_${i + 1}`)  // Start from cluster_1
-          .sort((a, b) => +b.frequency - +a.frequency)  // Ensure correct sorting by frequency
-          .slice(0, topNWords)
-          .map(row => ({ text: row.word, size: +row.frequency }));
-
-        // Debug: Check words for the current cluster
-        console.log(`Cluster_${i + 1} words:`, clusterWords);
-
-        // Create word cloud for this cluster
-        createWordCloud(x, y, clusterWords, ctx);
+        createWordCloud(x, y, clusterWords[i], ctx, i);
       });
 
-      // Create central word cloud using the globalWords (cluster_0)
-      createWordCloud(width / 2, height / 2, globalWords, ctx);
-
-      // Function to create word cloud at a specific coordinate (x, y)
-      function createWordCloud(centerX, centerY, words, ctx) {
-        const cloudSize = 100;  // Size of word cloud canvas
+      function createWordCloud(centerX, centerY, words, ctx, clusterIndex) {
+        const cloudSize = 120;
         d3.layout.cloud().size([cloudSize, cloudSize])
           .words(words)
           .padding(2)
-          .rotate(() => (~~(Math.random() * 2) * 90))
-          .fontSize(d => d.size / 1000)
+          .rotate(() => 0)
+          .fontSize(d => Math.max(12, d.size * 1000))
           .on("end", draw)
           .start();
 
         function draw(words) {
           words.forEach(word => {
+            ctx.save();
+            ctx.translate(centerX, centerY);
             ctx.font = `${word.size}px Arial`;
-            ctx.fillStyle = d3.schemeCategory10[Math.floor(Math.random() * 10)];
-            ctx.fillText(word.text, centerX + word.x, centerY + word.y);
+            ctx.fillStyle = d3.schemeCategory10[clusterIndex % 10];
+            ctx.textAlign = "center";
+            ctx.fillText(word.text, word.x, word.y);
+            ctx.restore();
           });
         }
       }
-
     }).catch(error => console.error("Error loading data or drawing visualization:", error));
-
   </script>
 </body>
 </html>
-
