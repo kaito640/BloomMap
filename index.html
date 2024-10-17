@@ -5,40 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Radial Clusters with Word Clouds</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="d3.layout.cloud.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-cloud/1.2.5/d3.layout.cloud.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 0;
-      padding: 0;
+      padding: 20px;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      height: 100vh;
       background-color: #f0f0f0;
     }
-    canvas {
+    svg {
       border: 1px solid #ccc;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <canvas id="canvas" width="1000" height="1000"></canvas>
+  <svg id="visualization" width="1000" height="1000"></svg>
+  <button id="downloadSVG">Download as SVG</button>
   <script>
     const numClusters = 10;
-    const topNWords = 100;
-    const padding = 5; // Padding around shapes
+    const topNWords = 30;
+    const padding = 5;
+
+    const svg = d3.select("#visualization");
+    const width = +svg.attr("width");
+    const height = +svg.attr("height");
+    const radius = Math.min(width, height) / 2 - padding;
+    
+    const innerRadius = radius * 0.3;
+    const outerRadius = radius * 0.35;
 
     d3.csv("cluster_summary.csv").then(clusterData => {
-      const canvas = document.getElementById('canvas');
-      const ctx = canvas.getContext('2d');
-      const width = canvas.width;
-      const height = canvas.height;
-      const radius = Math.min(width, height) / 2 - padding;
-      
-      const innerRadius = radius * 0.28;
-      const outerRadius = radius * 0.45;
-
       // Calculate total frequency for each word across all clusters
       const wordTotalFreq = d3.rollup(clusterData, 
         v => d3.sum(v, d => +d.frequency),
@@ -77,43 +82,36 @@
 
       const clusterAngles = pie(Array.from({ length: numClusters - 1 }));
 
-      clusterAngles.forEach((d, i) => {
-        ctx.beginPath();
-        ctx.arc(width / 2, height / 2, innerRadius, d.startAngle, d.endAngle);
-        ctx.arc(width / 2, height / 2, outerRadius, d.endAngle, d.startAngle, true);
-        ctx.fillStyle = d3.schemeCategory10[i % 10];
-        ctx.fill();
-        ctx.strokeStyle = "#fff";
-        ctx.lineWidth = 1;
-        ctx.stroke();
+      const g = svg.append("g")
+        .attr("transform", `translate(${width/2},${height/2})`);
 
-        // Draw cluster label in the center of the arc
-        const centroidAngle = (d.startAngle + d.endAngle) / 2;
-        const labelRadius = (innerRadius + outerRadius) / 2;
-        const x = width / 2 + labelRadius * Math.cos(centroidAngle);
-        const y = height / 2 + labelRadius * Math.sin(centroidAngle);
-        ctx.font = "bold 20px Ductape";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = "#fff";
-        ctx.fillText(`C${i + 1}`, x, y);
-      });
+      g.selectAll("path")
+        .data(clusterAngles)
+        .enter()
+        .append("path")
+        .attr("d", arc)
+        .attr("fill", (d, i) => d3.schemeCategory10[i % 10])
+        .attr("stroke", "white")
+        .attr("stroke-width", 1);
 
-      // Draw central word cloud (cluster_0)
-      createWordCloud(width / 2, height / 2, clusterWords[0], ctx, -1, innerRadius * 0.9);
+      // Add cluster labels
+      g.selectAll("text.cluster-label")
+        .data(clusterAngles)
+        .enter()
+        .append("text")
+        .attr("class", "cluster-label")
+        .attr("transform", d => `translate(${arc.centroid(d)})`)
+        .attr("text-anchor", "middle")
+        .attr("fill", "white")
+        .attr("font-size", "10px")
+        .attr("font-weight", "bold")
+        .text((d, i) => `C${i + 1}`);
 
-      // Draw word clouds for other clusters
-      clusterAngles.forEach((d, i) => {
-        const centroidAngle = (d.startAngle + d.endAngle) / 2;
-        const x = width / 2 + (radius * 0.7 + padding) * Math.cos(centroidAngle);
-        const y = height / 2 + (radius * 0.7 + padding) * Math.sin(centroidAngle);
-
-        createWordCloud(x, y, clusterWords[i + 1], ctx, i, radius * 0.24);
-      });
-
-      function createWordCloud(centerX, centerY, words, ctx, clusterIndex, cloudRadius) {
+      // Function to create word cloud
+      function createWordCloud(words, x, y, cloudRadius, color) {
         const cloudSize = cloudRadius * 2;
-        d3.layout.cloud().size([cloudSize, cloudSize])
+        d3.layout.cloud()
+          .size([cloudSize, cloudSize])
           .words(words)
           .padding(1)
           .rotate(() => 0)
@@ -122,18 +120,44 @@
           .start();
 
         function draw(words) {
-          words.forEach(word => {
-            ctx.save();
-            ctx.translate(centerX, centerY);
-            ctx.font = `${word.size}px Arial`;
-            ctx.fillStyle = clusterIndex === -1 ? "#333" : d3.schemeCategory10[clusterIndex % 10];
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(word.text, word.x, word.y);
-            ctx.restore();
-          });
+          svg.append("g")
+            .attr("transform", `translate(${x},${y})`)
+            .selectAll("text")
+            .data(words)
+            .enter()
+            .append("text")
+            .style("font-size", d => `${d.size}px`)
+            .style("fill", color)
+            .attr("text-anchor", "middle")
+            .attr("transform", d => `translate(${d.x},${d.y})`)
+            .text(d => d.text);
         }
       }
+
+      // Create central word cloud (cluster_0)
+      createWordCloud(clusterWords[0], width/2, height/2, innerRadius * 0.9, "#333");
+
+      // Create word clouds for other clusters
+      clusterAngles.forEach((d, i) => {
+        const centroidAngle = (d.startAngle + d.endAngle) / 2;
+        const x = width/2 + (radius * 0.7 + padding) * Math.cos(centroidAngle);
+        const y = height/2 + (radius * 0.7 + padding) * Math.sin(centroidAngle);
+        createWordCloud(clusterWords[i + 1], x, y, radius * 0.22, d3.schemeCategory10[i % 10]);
+      });
+
+      // Set up download button
+      document.getElementById('downloadSVG').addEventListener('click', () => {
+        const svgData = new XMLSerializer().serializeToString(svg.node());
+        const svgBlob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
+        const svgUrl = URL.createObjectURL(svgBlob);
+        const downloadLink = document.createElement("a");
+        downloadLink.href = svgUrl;
+        downloadLink.download = "radial_clusters.svg";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      });
+
     }).catch(error => console.error("Error loading data or drawing visualization:", error));
   </script>
 </body>
