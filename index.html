@@ -35,8 +35,8 @@
   <div id="controls">
     <label for="topNWords">Top N Words: <input type="number" id="topNWords" value="30" min="5" max="100"></label>
     <label for="minFontSize">Min Font Size: <input type="number" id="minFontSize" value="10" min="6" max="20"></label>
-    <label for="maxFontSize">Max Font Size: <input type="number" id="maxFontSize" value="24" min="12" max="48"></label>
-    <label for="donutRadius">Donut Radius: <input type="number" id="donutRadius" value="35" min="20" max="45"></label>
+    <label for="maxFontSize">Max Font Size: <input type="number" id="maxFontSize" value="32" min="12" max="48"></label>
+    <label for="donutRadius">Donut Radius: <input type="number" id="donutRadius" value="40" min="20" max="45"></label>
     <button id="updateViz">Update Visualization</button>
   </div>
   <svg id="visualization" width="1000" height="1000"></svg>
@@ -58,6 +58,26 @@
       color = d3.scaleOrdinal(d3.schemeCategory10);
 
       svg.selectAll("*").remove(); // Clear previous visualization
+    }
+
+    function calculateZScores(data) {
+      const allFrequencies = data.map(d => +d.frequency);
+      const mean = d3.mean(allFrequencies);
+      const stdDev = d3.deviation(allFrequencies);
+      
+      return data.map(d => ({
+        ...d,
+        zScore: ((+d.frequency) - mean) / stdDev
+      }));
+    }
+
+    function assignSizeBuckets(words, numBuckets) {
+      const sortedWords = words.sort((a, b) => b.size - a.size);
+      const bucketSize = Math.ceil(words.length / numBuckets);
+      return sortedWords.map((word, index) => ({
+        ...word,
+        sizeBucket: Math.floor(index / bucketSize)
+      }));
     }
 
     function createBackgroundPanels(clusterAngles) {
@@ -86,29 +106,31 @@
       const minFontSize = +document.getElementById("minFontSize").value;
       const maxFontSize = +document.getElementById("maxFontSize").value;
 
+      const dataWithZScores = calculateZScores(clusterData);
+
       // Process words for each cluster
       const clusterWords = d3.range(10).map(i => {
         const cluster = `cluster_${i}`;
-        const words = clusterData.filter(d => d.cluster === cluster);
-        const totalFreq = d3.sum(words, d => +d.frequency);
+        const words = dataWithZScores.filter(d => d.cluster === cluster);
         
-        return words.map(d => ({
+        const wordsWithSizes = words.map(d => ({
           text: d.word,
-          size: calculateScore(d.word, +d.frequency, totalFreq)
+          size: i === 0 ? d.zScore : -d.zScore // Keep central cluster positive, outer clusters negative
         }))
         .sort((a, b) => b.size - a.size)
         .slice(0, topNWords);
+
+        return assignSizeBuckets(wordsWithSizes, 10); // 10 size buckets
       });
 
-      // Normalize sizes across all clusters
-      const allSizes = clusterWords.flat().map(d => d.size);
+      // Create a size scale for the buckets
       const sizeScale = d3.scaleLinear()
-        .domain([d3.min(allSizes), d3.max(allSizes)])
+        .domain([0, 9])
         .range([minFontSize, maxFontSize]);
 
       clusterWords.forEach(cluster => {
         cluster.forEach(word => {
-          word.size = sizeScale(word.size);
+          word.size = sizeScale(word.sizeBucket);
         });
       });
 
@@ -152,16 +174,17 @@
         .text((d, i) => `C${i + 1}`);
 
       // Create word clouds
-      createWordCloud(clusterWords[0], width/2, height/2, innerRadius * 0.9, -1);
+      createWordCloud(clusterWords[0], width/2, height/2, innerRadius * 0.9, -1, 0);
       clusterAngles.forEach((d, i) => {
         const centroidAngle = (d.startAngle + d.endAngle) / 2;
-        const x = width/2 + (radius * 0.8) * Math.cos(centroidAngle);
-        const y = height/2 + (radius * 0.8) * Math.sin(centroidAngle);
-        createWordCloud(clusterWords[i + 1], x, y, radius * 0.25, i);
+        const rayRadius = radius * 0.9;
+        const x = width/2 + rayRadius * Math.cos(centroidAngle);
+        const y = height/2 + rayRadius * Math.sin(centroidAngle);
+        createWordCloud(clusterWords[i + 1], x, y, radius * 0.25, i, centroidAngle);
       });
     }
 
-    function createWordCloud(words, x, y, cloudRadius, clusterIndex) {
+    function createWordCloud(words, x, y, cloudRadius, clusterIndex, angle) {
       const cloudSize = cloudRadius * 2;
       d3.layout.cloud()
         .size([cloudSize, cloudSize])
@@ -173,24 +196,19 @@
         .start();
 
       function draw(words) {
-        svg.append("g")
-          .attr("transform", `translate(${x},${y})`)
-          .selectAll("text")
+        const g = svg.append("g")
+          .attr("transform", `translate(${x},${y}) rotate(${angle * (180/Math.PI)})`);
+        
+        g.selectAll("text")
           .data(words)
           .enter()
           .append("text")
           .style("font-size", d => `${d.size}px`)
           .style("fill", clusterIndex === -1 ? "#333" : color(clusterIndex))
           .attr("text-anchor", "middle")
-          .attr("transform", d => `translate(${d.x},${d.y})`)
+          .attr("transform", d => `translate(${d.x},${d.y}) rotate(${-angle * (180/Math.PI)})`)
           .text(d => d.text);
       }
-    }
-
-    function calculateScore(word, clusterFreq, totalDocs) {
-      const tf = clusterFreq / totalDocs;
-      const idf = Math.log(10 / (wordTotalFreq.get(word) || 1));
-      return tf * idf;
     }
 
     d3.csv("cluster_summary.csv").then(data => {
