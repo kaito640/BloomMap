@@ -1,7 +1,9 @@
-// Load the CSV data
-// Load the CSV data
-d3.csv("cluster_summary.csv").then(data => {
-
+// Load cluster data and global summary for the word cloud
+Promise.all([
+  d3.csv("cluster_summary.csv"),
+  d3.csv("global_summary.csv")
+]).then(([clusterData, globalData]) => {
+  
   // Prepare the SVG canvas
   const width = 960, height = 960;
   const radius = Math.min(width, height) / 2;
@@ -13,7 +15,7 @@ d3.csv("cluster_summary.csv").then(data => {
     .attr("transform", `translate(${width / 2}, ${height / 2})`);
   
   // Group data by clusters
-  const clusters = d3.group(data, d => d.cluster);
+  const clusters = d3.group(clusterData, d => d.cluster);
   
   // Create a scale for the angles
   const angleScale = d3.scaleLinear()
@@ -51,5 +53,35 @@ d3.csv("cluster_summary.csv").then(data => {
       .attr("dominant-baseline", "middle")
       .text(d => d)
       .style("font-size", "14px");  // Adjust the font size as needed
+  
+  // ======== WORD CLOUD IN THE CENTER ========
+
+  // Define the word cloud layout
+  const wordCloudRadius = clusterRadius - 100; // Adjust size for the word cloud
+  
+  const topXWords = globalData.slice(0, 50); // X most frequent words, modify as needed
+  
+  const layout = d3.layout.cloud()
+    .size([wordCloudRadius * 2, wordCloudRadius * 2])
+    .words(topXWords.map(d => ({text: d.word, size: +d.frequency})))
+    .padding(5)
+    .fontSize(d => Math.log(d.size) * 10) // Scale font size based on frequency
+    .on("end", drawWordCloud);
+  
+  layout.start();
+  
+  function drawWordCloud(words) {
+    svg.append("g")
+      .attr("transform", `translate(${0}, ${0})`)  // Center the word cloud
+      .selectAll("text")
+      .data(words)
+      .enter().append("text")
+        .style("font-size", d => `${d.size}px`)
+        .style("fill", () => d3.schemeCategory10[Math.floor(Math.random() * 10)])
+        .attr("text-anchor", "middle")
+        .attr("transform", d => `translate(${[d.x, d.y]}) rotate(${d.rotate})`)
+        .text(d => d.text);
+  }
+
 });
 
