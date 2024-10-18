@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Radial Clusters with D3 Word Clouds</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="d3.layout.cloud.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-cloud/1.2.5/d3.layout.cloud.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -85,63 +85,46 @@
     }
 
     function createWordCloud(words, x, y, cloudRadius, clusterIndex, angle) {
-      const cloudSize = cloudRadius * 2;
-      const minFontSize = +document.getElementById("minFontSize").value;
-      const maxFontSize = +document.getElementById("maxFontSize").value;
-    
-      const fontSize = d3.scaleLinear()
-        .domain([d3.min(words, d => d.importance), d3.max(words, d => d.importance)])
-        .range([minFontSize, maxFontSize]);
-    
-      // Custom rectangular spiral
-      function rectangularSpiral(size) {
-        let dx = 0, dy = 0, x = 0, y = 0;
-        return function(t) {
-          if (t < 0) t = -t;
-          if (Math.round(Math.sqrt(dx * dx + dy * dy)) < size) {
-            if ((Math.abs(dx) <= Math.abs(dy) && Math.abs(dx) < size) ||
-                (Math.abs(dy) <= Math.abs(dx) && Math.abs(dy) < size)) {
-              if (dx < 0) { dx++; } else if (dx > 0) { dx--; } else { dy++; }
-            } else {
-              if (dy < 0) { dy++; } else if (dy > 0) { dy--; } else { dx++; }
-            }
-          }
-          x += dx;
-          y += dy;
-          return [x, y];
-        };
-      }
-    
-      d3.layout.cloud()
-        .size([cloudSize, cloudSize])
-        .words(words.map(d => ({text: d.theme, size: fontSize(d.importance)})))
-        .padding(3)
-        .rotate(() => 0)
-        .font("Arial")
-        .fontSize(d => d.size)
-        .spiral(rectangularSpiral)
-        .on("end", draw)
-        .start();
-    
-      function draw(words) {
-        const g = svg.append("g")
-          .attr("transform", `translate(${x},${y}) rotate(${angle * (180/Math.PI)})`);
-        
-        g.selectAll("text")
-          .data(words)
-          .enter()
-          .append("text")
-          .style("font-size", d => `${d.size}px`)
-          .style("font-family", "Arial")
-          .style("fill", clusterIndex === 'global' ? "#333" : color(clusterIndex))
-          .attr("text-anchor", "middle")
-          .attr("transform", d => `translate(${d.x},${d.y}) rotate(${-angle * (180/Math.PI)})`)
-          .text(d => d.text);
-      }
+      return new Promise((resolve) => {
+        const cloudSize = cloudRadius * 2;
+        const minFontSize = +document.getElementById("minFontSize").value;
+        const maxFontSize = +document.getElementById("maxFontSize").value;
+
+        const fontSize = d3.scaleLinear()
+          .domain([d3.min(words, d => d.importance), d3.max(words, d => d.importance)])
+          .range([minFontSize, maxFontSize]);
+
+        d3.layout.cloud()
+          .size([cloudSize, cloudSize])
+          .words(words.map(d => ({text: d.theme, size: fontSize(d.importance)})))
+          .padding(5)
+          .rotate(() => 0)
+          .font("Arial")
+          .fontSize(d => d.size)
+          .on("end", draw)
+          .start();
+
+        function draw(words) {
+          const g = svg.append("g")
+            .attr("transform", `translate(${x},${y}) rotate(${angle * (180/Math.PI)})`);
+          
+          g.selectAll("text")
+            .data(words)
+            .enter()
+            .append("text")
+            .style("font-size", d => `${d.size}px`)
+            .style("font-family", "Arial")
+            .style("fill", clusterIndex === 'global' ? "#333" : color(clusterIndex))
+            .attr("text-anchor", "middle")
+            .attr("transform", d => `translate(${d.x},${d.y}) rotate(${-angle * (180/Math.PI)})`)
+            .text(d => d.text);
+
+          resolve();
+        }
+      });
     }
 
-
-    function createVisualization() {
+    async function createVisualization() {
       initializeVisualization();
 
       const topNWords = +document.getElementById("topNWords").value;
@@ -205,10 +188,10 @@
       // Create word clouds
       const globalCluster = clusterData.get('global');
       if (globalCluster) {
-        createWordCloud(globalCluster.slice(0, topNWords), width/2, height/2, innerRadiusStart * 0.9, 'global', 0);
+        await createWordCloud(globalCluster.slice(0, topNWords), width/2, height/2, innerRadiusStart * 0.9, 'global', 0);
       }
 
-      clusterAngles.forEach((d, i) => {
+      await Promise.all(clusterAngles.map(async (d, i) => {
         const cluster = clusterData.get(d.data);
         if (cluster) {
           const wedgeAngle = d.endAngle - d.startAngle;
@@ -217,9 +200,9 @@
           const x = width/2 + rayRadius * Math.cos(centroidAngle);
           const y = height/2 + rayRadius * Math.sin(centroidAngle);
           const cloudRadius = (outerRadiusStart - innerRadiusEnd) / 2 * 0.9;
-          createWordCloud(cluster.slice(0, topNWords), x, y, cloudRadius, i, centroidAngle);
+          await createWordCloud(cluster.slice(0, topNWords), x, y, cloudRadius, i, centroidAngle);
         }
-      });
+      }));
     }
 
     d3.csv("processed_themes.csv").then(data => {
@@ -229,7 +212,11 @@
 
       createVisualization();
 
-      document.getElementById("updateViz").addEventListener("click", createVisualization);
+      document.getElementById("updateViz").addEventListener("click", () => {
+        createVisualization().catch(error => {
+          console.error("Error updating visualization:", error);
+        });
+      });
 
       document.getElementById("downloadSVG").addEventListener("click", () => {
         const svgData = new XMLSerializer().serializeToString(svg.node());
