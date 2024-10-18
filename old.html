@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Wheel Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #visualization {
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="visualization"></div>
+
+    <script>
+        const width = 1000;
+        const height = 1000;
+        const radius = Math.min(width, height) / 2 - 10;
+
+        const svg = d3.select("#visualization")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .append("g")
+            .attr("transform", `translate(${width/2},${height/2})`);
+
+        const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+        d3.csv("processed_themes.csv").then(data => {
+            const clusters = [...new Set(data.map(d => d.cluster))];
+            clusters.sort((a, b) => a === 'global' ? -1 : b === 'global' ? 1 : 0);
+
+            const pie = d3.pie()
+                .value(1)
+                .sort(null);
+
+            const arc = d3.arc()
+                .innerRadius(d => d.data.cluster === 'global' ? 0 : radius * 0.4)
+                .outerRadius(d => d.data.cluster === 'global' ? radius * 0.3 : radius * 0.9);
+
+            const arcs = pie(clusters.filter(c => c !== 'global'));
+
+            // Draw outer segments
+            svg.selectAll("path")
+                .data(arcs)
+                .enter()
+                .append("path")
+                .attr("d", arc)
+                .attr("fill", d => color(d.data))
+                .attr("stroke", "white")
+                .attr("stroke-width", 2);
+
+            // Draw theme labels
+            data.forEach(d => {
+                if (d.cluster === 'global') {
+                    const [x, y] = getRandomPosition(0, radius * 0.3);
+                    svg.append("text")
+                        .attr("x", x)
+                        .attr("y", y)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", 10 + Math.sqrt(d.importance) * 5)
+                        .text(d.theme);
+                } else {
+                    const segment = arcs.find(arc => arc.data === d.cluster);
+                    if (segment) {
+                        const [x, y] = getRandomPosition(segment.startAngle, segment.endAngle, radius * 0.5, radius * 0.8);
+                        svg.append("text")
+                            .attr("x", x)
+                            .attr("y", y)
+                            .attr("text-anchor", "middle")
+                            .attr("font-size", 8 + Math.sqrt(d.importance) * 4)
+                            .attr("fill", color(d.cluster))
+                            .text(d.theme);
+                    }
+                }
+            });
+
+            // Add cluster labels
+            arcs.forEach(d => {
+                const centroid = arc.centroid(d);
+                svg.append("text")
+                    .attr("x", centroid[0] * 1.1)
+                    .attr("y", centroid[1] * 1.1)
+                    .attr("text-anchor", "middle")
+                    .attr("font-size", 14)
+                    .attr("font-weight", "bold")
+                    .attr("fill", color(d.data))
+                    .text(d.data);
+            });
+
+            // Add "Global Themes" label
+            svg.append("text")
+                .attr("x", 0)
+                .attr("y", 0)
+                .attr("text-anchor", "middle")
+                .attr("font-size", 16)
+                .attr("font-weight", "bold")
+                .text("Global Themes");
+
+            function getRandomPosition(startAngle, endAngle, innerRadius = 0, outerRadius = radius * 0.3) {
+                const angle = startAngle + Math.random() * (endAngle - startAngle);
+                const r = innerRadius + Math.random() * (outerRadius - innerRadius);
+                return [Math.cos(angle) * r, Math.sin(angle) * r];
+            }
+        });
+    </script>
+</body>
+</html>
