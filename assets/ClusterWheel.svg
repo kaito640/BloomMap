@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   id="visualization"
+   width="1000"
+   height="1000"
+   version="1.1"
+   sodipodi:docname="ClusterWheel.svg"
+   inkscape:export-filename="../Dev/kaito/ClusterWheel/ClusterWheel_icon.png"
+   inkscape:export-xdpi="2.8800001"
+   inkscape:export-ydpi="2.8800001"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs55" />
+  <sodipodi:namedview
+     id="namedview55"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:export-bgcolor="#ffffffff"
+     inkscape:zoom="0.45435992"
+     inkscape:cx="448.98326"
+     inkscape:cy="447.88281"
+     inkscape:window-width="1216"
+     inkscape:window-height="680"
+     inkscape:window-x="0"
+     inkscape:window-y="38"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="visualization" />
+  <g
+     class="background-panels"
+     transform="translate(500,500)"
+     id="g6">
+    <path
+       d="M0,-456A456,456,0,0,1,394.908,-228L0,0Z"
+       fill="rgb(53, 203, 255)"
+       stroke="none"
+       opacity="0.3"
+       id="path1" />
+    <path
+       d="M394.908,-228A456,456,0,0,1,394.908,228L0,0Z"
+       fill="rgb(255, 217, 24)"
+       stroke="none"
+       opacity="0.3"
+       id="path2" />
+    <path
+       d="M394.908,228A456,456,0,0,1,0,456L0,0Z"
+       fill="rgb(75, 255, 75)"
+       stroke="none"
+       opacity="0.3"
+       id="path3" />
+    <path
+       d="M0,456A456,456,0,0,1,-394.908,228L0,0Z"
+       fill="rgb(255, 67, 68)"
+       stroke="none"
+       opacity="0.3"
+       id="path4" />
+    <path
+       d="M-394.908,228A456,456,0,0,1,-394.908,-228L0,0Z"
+       fill="rgb(253, 176, 255)"
+       stroke="none"
+       opacity="0.3"
+       id="path5" />
+    <path
+       d="M-394.908,-228A456,456,0,0,1,0,-456L0,0Z"
+       fill="rgb(239, 147, 128)"
+       stroke="none"
+       opacity="0.3"
+       id="path6" />
+  </g>
+  <g
+     transform="translate(500,500)"
+     id="g23">
+    <path
+       class="inner"
+       d="M0,-192A192,192,0,0,1,166.277,-96L83.138,-48A96,96,0,0,0,0,-96Z"
+       fill="#1f77b4"
+       stroke="white"
+       stroke-width="1"
+       id="path7" />
+    <path
+       class="inner"
+       d="M166.277,-96A192,192,0,0,1,166.277,96L83.138,48A96,96,0,0,0,83.138,-48Z"
+       fill="#ff7f0e"
+       stroke="white"
+       stroke-width="1"
+       id="path8" />
+    <path
+       class="inner"
+       d="M166.277,96A192,192,0,0,1,0,192L0,96A96,96,0,0,0,83.138,48Z"
+       fill="#2ca02c"
+       stroke="white"
+       stroke-width="1"
+       id="path9" />
+    <path
+       class="inner"
+       d="M0,192A192,192,0,0,1,-166.277,96L-83.138,48A96,96,0,0,0,0,96Z"
+       fill="#d62728"
+       stroke="white"
+       stroke-width="1"
+       id="path10" />
+    <path
+       class="inner"
+       d="M-166.277,96A192,192,0,0,1,-166.277,-96L-83.138,-48A96,96,0,0,0,-83.138,48Z"
+       fill="#9467bd"
+       stroke="white"
+       stroke-width="1"
+       id="path11" />
+    <path
+       class="inner"
+       d="M-166.277,-96A192,192,0,0,1,0,-192L0,-96A96,96,0,0,0,-83.138,-48Z"
+       fill="#8c564b"
+       stroke="white"
+       stroke-width="1"
+       id="path12" />
+    <path
+       class="outer"
+       d="M0,-456A456,456,0,0,1,394.908,-228L386.594,-223.2A446.4,446.4,0,0,0,0,-446.4Z"
+       fill="rgb(26, 100, 151)"
+       stroke="white"
+       stroke-width="1"
+       id="path13" />
+    <path
+       class="outer"
+       d="M394.908,-228A456,456,0,0,1,394.908,228L386.594,223.2A446.4,446.4,0,0,0,386.594,-223.2Z"
+       fill="rgb(213, 106, 12)"
+       stroke="white"
+       stroke-width="1"
+       id="path14" />
+    <path
+       class="outer"
+       d="M394.908,228A456,456,0,0,1,0,456L0,446.4A446.4,446.4,0,0,0,386.594,223.2Z"
+       fill="rgb(37, 134, 37)"
+       stroke="white"
+       stroke-width="1"
+       id="path15" />
+    <path
+       class="outer"
+       d="M0,456A456,456,0,0,1,-394.908,228L-386.594,223.2A446.4,446.4,0,0,0,0,446.4Z"
+       fill="rgb(179, 33, 33)"
+       stroke="white"
+       stroke-width="1"
+       id="path16" />
+    <path
+       class="outer"
+       d="M-394.908,228A456,456,0,0,1,-394.908,-228L-386.594,-223.2A446.4,446.4,0,0,0,-386.594,223.2Z"
+       fill="rgb(124, 86, 158)"
+       stroke="white"
+       stroke-width="1"
+       id="path17" />
+    <path
+       class="outer"
+       d="M-394.908,-228A456,456,0,0,1,0,-456L0,-446.4A446.4,446.4,0,0,0,-386.594,-223.2Z"
+       fill="rgb(117, 72, 63)"
+       stroke="white"
+       stroke-width="1"
+       id="path18" />
+    <text
+       class="cluster-label"
+       transform="translate(71.99999999999999,-124.70765814495917)"
+       text-anchor="middle"
+       fill="white"
+       font-size="10px"
+       font-weight="bold"
+       id="text18">Africa</text>
+    <text
+       class="cluster-label"
+       transform="translate(144,0)"
+       text-anchor="middle"
+       fill="white"
+       font-size="10px"
+       font-weight="bold"
+       id="text19">Asia</text>
+    <text
+       class="cluster-label"
+       transform="translate(72.00000000000004,124.70765814495914)"
+       text-anchor="middle"
+       fill="white"
+       font-size="10px"
+       font-weight="bold"
+       id="text20">Europe</text>
+    <text
+       class="cluster-label"
+       transform="translate(-71.99999999999997,124.70765814495917)"
+       text-anchor="middle"
+       fill="white"
+       font-size="10px"
+       font-weight="bold"
+       id="text21">North America</text>
+    <text
+       class="cluster-label"
+       transform="translate(-144,1.7634913907721887e-14)"
+       text-anchor="middle"
+       fill="white"
+       font-size="10px"
+       font-weight="bold"
+       id="text22">Oceania</text>
+    <text
+       class="cluster-label"
+       transform="translate(-72.00000000000017,-124.70765814495905)"
+       text-anchor="middle"
+       fill="white"
+       font-size="10px"
+       font-weight="bold"
+       id="text23">South America</text>
+  </g>
+  <g
+     transform="translate(500,500) rotate(0)"
+     id="g27">
+    <text
+       text-anchor="middle"
+       transform="translate(22,18) rotate(0)"
+       style="font-size: 15px; font-family: Arial; fill: rgb(51, 51, 51);"
+       id="text24">Global Trade</text>
+    <text
+       text-anchor="middle"
+       transform="translate(3,-10) rotate(0)"
+       style="font-size: 15px; font-family: Arial; fill: rgb(51, 51, 51);"
+       id="text25">Artificial Intelligence</text>
+    <text
+       text-anchor="middle"
+       transform="translate(-1,44) rotate(0)"
+       style="font-size: 14px; font-family: Arial; fill: rgb(51, 51, 51);"
+       id="text26">Climate Change</text>
+    <text
+       text-anchor="middle"
+       transform="translate(-22,65) rotate(0)"
+       style="font-size: 10px; font-family: Arial; fill: rgb(51, 51, 51);"
+       id="text27">Cybersecurity</text>
+  </g>
+  <g
+     transform="translate(659.5999999999998,223.56469111200704) rotate(299.99999999999994)"
+     id="g32">
+    <text
+       text-anchor="middle"
+       transform="translate(34,-3) rotate(-299.99999999999994)"
+       style="font-size: 32px; font-family: Arial; fill: rgb(31, 119, 180);"
+       id="text28">Safaris</text>
+    <text
+       text-anchor="middle"
+       transform="translate(-6,22) rotate(-299.99999999999994)"
+       style="font-size: 19px; font-family: Arial; fill: rgb(31, 119, 180);"
+       id="text29">African Union</text>
+    <text
+       text-anchor="middle"
+       transform="translate(-5,44) rotate(-299.99999999999994)"
+       style="font-size: 13px; font-family: Arial; fill: rgb(31, 119, 180);"
+       id="text30">Nile River</text>
+    <text
+       text-anchor="middle"
+       transform="translate(65,65) rotate(-299.99999999999994)"
+       style="font-size: 11px; font-family: Arial; fill: rgb(31, 119, 180);"
+       id="text31">Sahara Desert</text>
+    <text
+       text-anchor="middle"
+       transform="translate(-36,71) rotate(-299.99999999999994)"
+       style="font-size: 10px; font-family: Arial; fill: rgb(31, 119, 180);"
+       id="text32">Wildlife Conservation</text>
+  </g>
+  <g
+     transform="translate(819.2,499.99999999999966) rotate(359.99999999999994)"
+     id="g37">
+    <text
+       text-anchor="middle"
+       transform="translate(-18,-6) rotate(-359.99999999999994)"
+       style="font-size: 32px; font-family: Arial; fill: rgb(255, 127, 14);"
+       id="text33">Silk Road</text>
+    <text
+       text-anchor="middle"
+       transform="translate(30,-47) rotate(-359.99999999999994)"
+       style="font-size: 24px; font-family: Arial; fill: rgb(255, 127, 14);"
+       id="text34">K-pop</text>
+    <text
+       text-anchor="middle"
+       transform="translate(50,-83) rotate(-359.99999999999994)"
+       style="font-size: 17px; font-family: Arial; fill: rgb(255, 127, 14);"
+       id="text35">Great Wall</text>
+    <text
+       text-anchor="middle"
+       transform="translate(33,16) rotate(-359.99999999999994)"
+       style="font-size: 16px; font-family: Arial; fill: rgb(255, 127, 14);"
+       id="text36">Sumo Wrestling</text>
+    <text
+       text-anchor="middle"
+       transform="translate(-61,27) rotate(-359.99999999999994)"
+       style="font-size: 10px; font-family: Arial; fill: rgb(255, 127, 14);"
+       id="text37">Bollywood</text>
+  </g>
+  <g
+     transform="translate(659.5999999999999,776.435308887993) rotate(420.00000000000006)"
+     id="g41">
+    <text
+       text-anchor="middle"
+       transform="translate(-15,10) rotate(-420.00000000000006)"
+       style="font-size: 17px; font-family: Arial; fill: rgb(44, 160, 44);"
+       id="text38">Brexit</text>
+    <text
+       text-anchor="middle"
+       transform="translate(0,42) rotate(-420.00000000000006)"
+       style="font-size: 17px; font-family: Arial; fill: rgb(44, 160, 44);"
+       id="text39">European Union</text>
+    <text
+       text-anchor="middle"
+       transform="translate(-60,-13) rotate(-420.00000000000006)"
+       style="font-size: 11px; font-family: Arial; fill: rgb(44, 160, 44);"
+       id="text40">Royal Families</text>
+    <text
+       text-anchor="middle"
+       transform="translate(30,-31) rotate(-420.00000000000006)"
+       style="font-size: 10px; font-family: Arial; fill: rgb(44, 160, 44);"
+       id="text41">Champions League</text>
+  </g>
+  <g
+     transform="translate(340.4000000000007,776.4353088879933) rotate(479.9999999999999)"
+     id="g46">
+    <text
+       text-anchor="middle"
+       transform="translate(17,-53) rotate(-479.9999999999999)"
+       style="font-size: 32px; font-family: Arial; fill: rgb(214, 39, 40);"
+       id="text42">NFL</text>
+    <text
+       text-anchor="middle"
+       transform="translate(26,5) rotate(-479.9999999999999)"
+       style="font-size: 28px; font-family: Arial; fill: rgb(214, 39, 40);"
+       id="text43">Hollywood</text>
+    <text
+       text-anchor="middle"
+       transform="translate(-12,45) rotate(-479.9999999999999)"
+       style="font-size: 22px; font-family: Arial; fill: rgb(214, 39, 40);"
+       id="text44">US Politics</text>
+    <text
+       text-anchor="middle"
+       transform="translate(27,65) rotate(-479.9999999999999)"
+       style="font-size: 14px; font-family: Arial; fill: rgb(214, 39, 40);"
+       id="text45">Silicon Valley</text>
+    <text
+       text-anchor="middle"
+       transform="translate(-13,-30) rotate(-479.9999999999999)"
+       style="font-size: 10px; font-family: Arial; fill: rgb(214, 39, 40);"
+       id="text46">Wall Street</text>
+  </g>
+  <g
+     transform="translate(180.79999999999995,500.0000000000007) rotate(539.9999999999999)"
+     id="g50">
+    <text
+       text-anchor="middle"
+       transform="translate(33,-32) rotate(-539.9999999999999)"
+       style="font-size: 27px; font-family: Arial; fill: rgb(148, 103, 189);"
+       id="text47">Rugby</text>
+    <text
+       text-anchor="middle"
+       transform="translate(27,-67) rotate(-539.9999999999999)"
+       style="font-size: 22px; font-family: Arial; fill: rgb(148, 103, 189);"
+       id="text48">Kangaroos</text>
+    <text
+       text-anchor="middle"
+       transform="translate(24,13) rotate(-539.9999999999999)"
+       style="font-size: 20px; font-family: Arial; fill: rgb(148, 103, 189);"
+       id="text49">Outback</text>
+    <text
+       text-anchor="middle"
+       transform="translate(-25,-15) rotate(-539.9999999999999)"
+       style="font-size: 10px; font-family: Arial; fill: rgb(148, 103, 189);"
+       id="text50">Indigenous Rights</text>
+  </g>
+  <g
+     transform="translate(340.3999999999995,223.56469111200738) rotate(599.9999999999999)"
+     id="g55">
+    <text
+       text-anchor="middle"
+       transform="translate(9,18) rotate(-599.9999999999999)"
+       style="font-size: 32px; font-family: Arial; fill: rgb(140, 86, 75);"
+       id="text51">Carnival</text>
+    <text
+       text-anchor="middle"
+       transform="translate(-35,-29) rotate(-599.9999999999999)"
+       style="font-size: 20px; font-family: Arial; fill: rgb(140, 86, 75);"
+       id="text52">Soccer</text>
+    <text
+       text-anchor="middle"
+       transform="translate(16,-58) rotate(-599.9999999999999)"
+       style="font-size: 20px; font-family: Arial; fill: rgb(140, 86, 75);"
+       id="text53">Andes Mountains</text>
+    <text
+       text-anchor="middle"
+       transform="translate(13,-92) rotate(-599.9999999999999)"
+       style="font-size: 19px; font-family: Arial; fill: rgb(140, 86, 75);"
+       id="text54">Amazon Rainforest</text>
+    <text
+       text-anchor="middle"
+       transform="translate(51,43) rotate(-599.9999999999999)"
+       style="font-size: 10px; font-family: Arial; fill: rgb(140, 86, 75);"
+       id="text55">Latin Music</text>
+  </g>
+</svg>
