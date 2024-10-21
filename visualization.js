@@ -5,7 +5,7 @@ function initializeVisualization() {
   svg = d3.select("#visualization");
   width = +svg.attr("width");
   height = +svg.attr("height");
-  radius = Math.min(width, height) / 2 - 20;
+  radius = Math.min(width, height) / 2 - 80;
   
   innerRadius = +document.getElementById("innerRadiusStart").value / 100 * radius;
   middleRadius = +document.getElementById("innerRadiusEnd").value / 100 * radius;
@@ -74,13 +74,30 @@ function createDonutRings(data) {
     .attr("class", "cluster-label")
     .attr("transform", d => {
       const [x, y] = arc.innerRadius((innerRadius + middleRadius) / 2).centroid(d);
-      return `translate(${x},${y}) rotate(${(d.startAngle + d.endAngle) / 2 * 180 / Math.PI - 90})`;
+      return `translate(${x},${y})`;
     })
     .attr("text-anchor", "middle")
+    .attr("dominant-baseline", "central")
     .attr("fill", "white")
-    .attr("font-size", "40px")
+    .attr("font-size", "14px")
     .attr("font-weight", "bold")
-    .text(d => d.data);
+    .text((d, i) => i + 1);
+
+  // Add white circle behind labels for better contrast
+  g.selectAll("circle.label-background")
+    .data(pie(data))
+    .enter()
+    .append("circle")
+    .attr("class", "label-background")
+    .attr("transform", d => {
+      const [x, y] = arc.innerRadius((innerRadius + middleRadius) / 2).centroid(d);
+      return `translate(${x},${y})`;
+    })
+    .attr("r", 10)
+    .attr("fill", "white");
+
+  // Bring labels to front
+  g.selectAll("text.cluster-label").raise();
 
   return {pie, middleArc};
 }
@@ -120,11 +137,11 @@ function drawVoronoiTreemap(treemap, x, y, clusterIndex, clusterName) {
     .attr("y", d => d.polygon.reduce((acc, point) => acc + point[1], 0) / d.polygon.length)
     .attr("text-anchor", "middle")
     .attr("dominant-baseline", "central")
-    .attr("font-size", d => Math.min(50, d.data.importance * 60) + "px")
+    .attr("font-size", d => Math.min(8, d.data.importance * 20) + "px")
     .attr("fill", clusterIndex === 'global' ? "#333" : color(clusterIndex))
     .text(d => d.data.theme);
 
-  // Add cluster label
+  // Add cluster label (only for non-global clusters)
   if (clusterIndex !== 'global') {
     g.append("text")
       .attr("class", "cluster-label")
@@ -132,7 +149,7 @@ function drawVoronoiTreemap(treemap, x, y, clusterIndex, clusterName) {
       .attr("y", 0)
       .attr("text-anchor", "middle")
       .attr("dominant-baseline", "central")
-      .attr("font-size", "40px")
+      .attr("font-size", "14px")
       .attr("font-weight", "bold")
       .attr("fill", color(clusterIndex))
       .text(clusterName);
@@ -148,7 +165,7 @@ function drawVoronoiTreemap(treemap, x, y, clusterIndex, clusterName) {
       tooltip.transition()
         .duration(200)
         .style("opacity", .9);
-      tooltip.html(`${d.data.theme}<br/>Importance: ${d.data.importance.toFixed(2)}`)
+      tooltip.html(`${d.data.theme}<br/>Importance: ${d.data.importance.toFixed ? d.data.importance.toFixed(2) : d.data.importance}`)
         .style("left", (event.pageX + 10) + "px")
         .style("top", (event.pageY - 28) + "px");
     })
@@ -173,24 +190,13 @@ function getClipPolygon(startAngle, endAngle, innerRadius, outerRadius) {
   return points;
 }
 
-async function createVisualization() {
+function createVisualization() {
   initializeVisualization();
 
   const topNWords = +document.getElementById("topNWords").value;
 
   const clusters = Array.from(clusterData.keys()).filter(k => k !== 'global');
   const {pie, middleArc} = createDonutRings(clusters);
-
-  // Create Voronoi treemaps for each cluster
-  pie(clusters).forEach((d, i) => {
-    const cluster = clusterData.get(d.data);
-    if (cluster) {
-      const clipPolygon = getClipPolygon(d.startAngle, d.endAngle, middleRadius, outerRadius);
-      const treemap = createVoronoiTreemap(cluster.slice(0, topNWords), clipPolygon, d.index);
-      const centroid = middleArc.centroid(d);
-      drawVoronoiTreemap(treemap, width/2 + centroid[0], height/2 + centroid[1], d.index, d.data);
-    }
-  });
 
   // Create Voronoi treemap for global cluster in the center
   const globalCluster = clusterData.get('global');
@@ -199,7 +205,26 @@ async function createVisualization() {
     const treemap = createVoronoiTreemap(globalCluster.slice(0, topNWords), clipPolygon, 'global');
     drawVoronoiTreemap(treemap, width/2, height/2, 'global', 'Global');
   }
+
+  // Create Voronoi treemaps for each cluster
+  pie(clusters).forEach((d, i) => {
+    const cluster = clusterData.get(d.data);
+    if (cluster) {
+      const clipPolygon = getClipPolygon(d.startAngle, d.endAngle, middleRadius, outerRadius);
+      const treemap = createVoronoiTreemap(cluster.slice(0, topNWords), clipPolygon, i);
+      //const prevIndex = (i - 1 + arr.length) % arr.length;
+      const centroid = middleArc.centroid(d);
+      //const centroid = middleArc.centroid(arr[prevIndex]);
+      drawVoronoiTreemap(treemap, width/2 + centroid[0], height/2 + centroid[1], i, d.data);
+    }
+  });
 }
+
+// Set default values for the inputs
+document.getElementById("topNWords").value = 10;
+document.getElementById("innerRadiusStart").value = 38;
+document.getElementById("innerRadiusEnd").value = 40;
+document.getElementById("outerRadiusStart").value = 90;
 
 d3.csv("processed_themes.csv").then(data => {
   clusterData = d3.group(data, d => d.cluster);
