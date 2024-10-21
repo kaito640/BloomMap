@@ -1,6 +1,20 @@
 let svg, width, height, radius, innerRadius, middleRadius, outerRadius, color;
 let clusterData = {}, volumeData = {};
 
+document.getElementById("downloadSVG").addEventListener("click", () => {
+  const svgData = new XMLSerializer().serializeToString(svg.node());
+  const svgBlob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
+  const svgUrl = URL.createObjectURL(svgBlob);
+  const downloadLink = document.createElement("a");
+  downloadLink.href = svgUrl;
+  downloadLink.download = "radial_clusters.svg";
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+  URL.revokeObjectURL(svgUrl);
+});
+
+
 function initializeVisualization() {
   svg = d3.select("#visualization");
   width = +svg.attr("width");
@@ -74,7 +88,7 @@ function createDonutRings(data, vizGroup, volumeData) {
   });
 
   const volumeScale = d3.scaleLinear()
-    .domain([0, d3.max(localVolumes)*1.35])
+    .domain([0, d3.max(localVolumes)*1.2])
     .range([0, outerRadius - middleRadius]);
 
   // Duplicate middle ring for volume representation
@@ -242,7 +256,7 @@ function createVisualization() {
 }
 
 // Set default values for the inputs
-document.getElementById("topNWords").value = 10;
+document.getElementById("topNWords").value = 100;
 document.getElementById("innerRadiusStart").value = 38;
 document.getElementById("innerRadiusEnd").value = 40;
 document.getElementById("outerRadiusStart").value = 90;
