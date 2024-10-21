@@ -78,7 +78,7 @@ function createDonutRings(data) {
     })
     .attr("text-anchor", "middle")
     .attr("fill", "white")
-    .attr("font-size", "10px")
+    .attr("font-size", "40px")
     .attr("font-weight", "bold")
     .text(d => d.data);
 
@@ -99,7 +99,7 @@ function createVoronoiTreemap(data, clipPolygon, clusterIndex) {
   return rootNode;
 }
 
-function drawVoronoiTreemap(treemap, x, y, clusterIndex) {
+function drawVoronoiTreemap(treemap, x, y, clusterIndex, clusterName) {
   const g = svg.append("g")
     .attr("transform", `translate(${x},${y})`);
 
@@ -120,9 +120,23 @@ function drawVoronoiTreemap(treemap, x, y, clusterIndex) {
     .attr("y", d => d.polygon.reduce((acc, point) => acc + point[1], 0) / d.polygon.length)
     .attr("text-anchor", "middle")
     .attr("dominant-baseline", "central")
-    .attr("font-size", d => Math.min(8, d.data.importance * 20) + "px")
+    .attr("font-size", d => Math.min(50, d.data.importance * 60) + "px")
     .attr("fill", clusterIndex === 'global' ? "#333" : color(clusterIndex))
     .text(d => d.data.theme);
+
+  // Add cluster label
+  if (clusterIndex !== 'global') {
+    g.append("text")
+      .attr("class", "cluster-label")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("text-anchor", "middle")
+      .attr("dominant-baseline", "central")
+      .attr("font-size", "40px")
+      .attr("font-weight", "bold")
+      .attr("fill", color(clusterIndex))
+      .text(clusterName);
+  }
 
   // Add hover-over tooltip
   const tooltip = d3.select("body").append("div")
@@ -172,9 +186,9 @@ async function createVisualization() {
     const cluster = clusterData.get(d.data);
     if (cluster) {
       const clipPolygon = getClipPolygon(d.startAngle, d.endAngle, middleRadius, outerRadius);
-      const treemap = createVoronoiTreemap(cluster.slice(0, topNWords), clipPolygon, i);
+      const treemap = createVoronoiTreemap(cluster.slice(0, topNWords), clipPolygon, d.index);
       const centroid = middleArc.centroid(d);
-      drawVoronoiTreemap(treemap, width/2 + centroid[0], height/2 + centroid[1], i);
+      drawVoronoiTreemap(treemap, width/2 + centroid[0], height/2 + centroid[1], d.index, d.data);
     }
   });
 
@@ -183,7 +197,7 @@ async function createVisualization() {
   if (globalCluster) {
     const clipPolygon = getClipPolygon(0, 2 * Math.PI, 0, innerRadius);
     const treemap = createVoronoiTreemap(globalCluster.slice(0, topNWords), clipPolygon, 'global');
-    drawVoronoiTreemap(treemap, width/2, height/2, 'global');
+    drawVoronoiTreemap(treemap, width/2, height/2, 'global', 'Global');
   }
 }
 
