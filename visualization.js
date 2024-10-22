@@ -1,6 +1,42 @@
+// Global configuration object
+const VIZ_CONFIG = {
+  // Dimensions
+  width: 1400,
+  height: 1400,
+  
+  // Font sizes
+  fonts: {
+    globalMin: 8,
+    globalMax: 14,
+    clusterMin: 8, 
+    clusterMax: 20,
+    clusterLabelSize: 12
+  },
+  
+  // Word counts
+  wordCounts: {
+    global: 100,  // Words in center
+    clusters: 50  // Words per outer cluster
+  },
+  
+  // Visualization settings
+  visualization: {
+    padding: 80,
+    innerRadiusStart: 38,
+    innerRadiusEnd: 40,
+    outerRadiusStart: 90,
+    rotationAngle: -40
+  },
+  
+  // Colors
+  colorScheme: d3.schemeCategory10
+};
+
+// Global variables
 let svg, width, height, radius, innerRadius, middleRadius, outerRadius, color;
 let clusterData = {}, volumeData = {};
 
+// SVG Download functionality
 document.getElementById("downloadSVG").addEventListener("click", () => {
   const svgData = new XMLSerializer().serializeToString(svg.node());
   const svgBlob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
@@ -14,26 +50,57 @@ document.getElementById("downloadSVG").addEventListener("click", () => {
   URL.revokeObjectURL(svgUrl);
 });
 
+function getConfigFromUI() {
+  return {
+    ...VIZ_CONFIG,
+    fonts: {
+      globalMin: +document.getElementById("globalFontMin").value,
+      globalMax: +document.getElementById("globalFontMax").value,
+      clusterMin: +document.getElementById("clusterFontMin").value,
+      clusterMax: +document.getElementById("clusterFontMax").value
+    },
+    wordCounts: {
+      global: +document.getElementById("globalWords").value,
+      clusters: +document.getElementById("clusterWords").value
+    },
+    visualization: {
+      ...VIZ_CONFIG.visualization,
+      innerRadiusStart: +document.getElementById("innerRadiusStart").value,
+      innerRadiusEnd: +document.getElementById("innerRadiusEnd").value,
+      outerRadiusStart: +document.getElementById("outerRadiusStart").value,
+      rotationAngle: +document.getElementById("rotationAngle").value
+    }
+  };
+}
+
+function calculateFontSize(importance, isGlobal = false) {
+  const config = getConfigFromUI();
+  const { min, max } = isGlobal ? 
+    { min: config.fonts.globalMin, max: config.fonts.globalMax } :
+    { min: config.fonts.clusterMin, max: config.fonts.clusterMax };
+    
+  return Math.min(max, min + (importance * (max - min)));
+}
 
 function initializeVisualization() {
+  const config = getConfigFromUI();
+  
   svg = d3.select("#visualization");
   width = +svg.attr("width");
   height = +svg.attr("height");
-  radius = Math.min(width, height) / 2 - 80;
+  radius = Math.min(width, height) / 2 - config.visualization.padding;
   
-  innerRadius = +document.getElementById("innerRadiusStart").value / 100 * radius;
-  middleRadius = +document.getElementById("innerRadiusEnd").value / 100 * radius;
-  outerRadius = +document.getElementById("outerRadiusStart").value / 100 * radius;
+  innerRadius = (config.visualization.innerRadiusStart / 100) * radius;
+  middleRadius = (config.visualization.innerRadiusEnd / 100) * radius;
+  outerRadius = (config.visualization.outerRadiusStart / 100) * radius;
 
-  color = d3.scaleOrdinal(d3.schemeCategory10);
+  color = d3.scaleOrdinal(config.colorScheme);
 
   svg.selectAll("*").remove(); // Clear previous visualization
 }
 
 function createDonutRings(data, vizGroup, volumeData) {
-  console.log("Data passed to createDonutRings:", data);
-  console.log("Volume data:", volumeData);
-
+  console.log("Creating donut rings with data:", data);
   const g = vizGroup.append("g");
 
   // Add white background for central area
@@ -42,25 +109,29 @@ function createDonutRings(data, vizGroup, volumeData) {
     .attr("fill", "white");
 
   const pie = d3.pie()
-    .value(1)
+    .value(d => 1)
     .sort(null);
 
-  const arc = d3.arc();
+  const arc = d3.arc()
+    .innerRadius(innerRadius)
+    .outerRadius(middleRadius);
 
   // Inner ring (darker colors, cluster labels)
-  const innerArc = arc.innerRadius(innerRadius).outerRadius(middleRadius);
   g.selectAll("path.inner")
     .data(pie(data))
     .enter()
     .append("path")
     .attr("class", "inner")
-    .attr("d", innerArc)
+    .attr("d", arc)
     .attr("fill", (d, i) => color(i))
     .attr("stroke", "white")
     .attr("stroke-width", 1);
 
   // Middle ring (pale, transparent background)
-  const middleArc = arc.innerRadius(middleRadius).outerRadius(outerRadius);
+  const middleArc = d3.arc()
+    .innerRadius(middleRadius)
+    .outerRadius(outerRadius);
+
   g.selectAll("path.middle")
     .data(pie(data))
     .enter()
@@ -71,27 +142,14 @@ function createDonutRings(data, vizGroup, volumeData) {
     .attr("stroke", "none")
     .attr("opacity", 0.2);
 
-  // Define volumeScale
+  // Volume representation
   const volumes = Object.values(volumeData).filter(v => typeof v === 'number' && !isNaN(v));
-  console.log("Filtered volumes:", volumes);
-  
-  if (volumes.length === 0) {
-    console.error("No valid volume data found");
-    return {pie, middleArc};
-  }
-
-
-  // Filter out the "global" value
-  const localVolumes = Object.values(volumeData).filter((value, index) => {
-    // Skip the first value (global)
-    return index !== 0;
-  });
+  const localVolumes = volumes.slice(1); // Skip global volume
 
   const volumeScale = d3.scaleLinear()
-    .domain([0, d3.max(localVolumes)*1.2])
+    .domain([0, d3.max(localVolumes) * 1.2])
     .range([0, outerRadius - middleRadius]);
 
-  // Duplicate middle ring for volume representation
   g.selectAll("path.volume")
     .data(pie(data))
     .enter()
@@ -99,101 +157,101 @@ function createDonutRings(data, vizGroup, volumeData) {
     .attr("class", "volume")
     .attr("d", (d) => {
       const volume = volumeData[d.data] || 0;
-      console.log(`Volume for ${d.data}:`, volume);
       const outerRadiusAdjusted = middleRadius + volumeScale(volume);
-      return arc.innerRadius(middleRadius).outerRadius(outerRadiusAdjusted)(d);
+      return d3.arc()
+        .innerRadius(middleRadius)
+        .outerRadius(outerRadiusAdjusted)(d);
     })
     .attr("fill", (d, i) => d3.color(color(i)).brighter(1.5))
     .attr("stroke", "none")
     .attr("opacity", 0.8);
 
-  // Outer ring (thin, clean look)
-  const outerArc = arc.innerRadius(outerRadius).outerRadius(outerRadius + 2);
-  g.selectAll("path.outer")
-    .data(pie(data))
-    .enter()
-    .append("path")
-    .attr("class", "outer")
-    .attr("d", outerArc)
-    .attr("fill", (d, i) => d3.color(color(i)).darker(0.5))
-    .attr("stroke", "none");
-
-  // Add cluster labels and volume count near inner donut
+  // Add cluster labels
   g.selectAll("text.cluster-label")
     .data(pie(data))
     .enter()
     .append("text")
     .attr("class", "cluster-label")
     .attr("transform", d => {
-      const [x, y] = arc.innerRadius(innerRadius + 5).centroid(d);
-      return `translate(${x},${y})`;
+      const centroid = arc.centroid(d);
+      return centroid[0] && centroid[1] ? `translate(${centroid[0]},${centroid[1]})` : "";
     })
     .attr("text-anchor", "middle")
     .attr("dominant-baseline", "central")
     .attr("fill", "white")
-    .attr("font-size", "12px")
+    .attr("font-size", `${VIZ_CONFIG.fonts.clusterLabelSize}px`)
     .attr("font-weight", "bold")
-    .text((d) => {
-      const volume = volumeData[d.data] || 0;
-      return `${d.data}\n${volume}`;
-    });
+    .text((d) => volumeData[d.data] || 0);
 
   return {pie, middleArc};
 }
 
 function createVoronoiTreemap(data, clipPolygon, clusterIndex) {
+  if (!data || !clipPolygon) {
+    console.error("Invalid data or clipPolygon:", {data, clipPolygon});
+    return null;
+  }
+
   const voronoiTreemap = d3.voronoiTreemap()
     .clip(clipPolygon)
     .minWeightRatio(0.01)
     .prng(Math.random);
 
   const rootNode = d3.hierarchy({children: data})
-    .sum(d => d[1]);  // Use the importance value directly
+    .sum(d => d[1]);
 
-  voronoiTreemap(rootNode);
-
-  return rootNode;
+  try {
+    voronoiTreemap(rootNode);
+    return rootNode;
+  } catch (e) {
+    console.error("Error creating treemap:", e);
+    return null;
+  }
 }
 
 function drawVoronoiTreemap(treemap, x, y, clusterIndex, clusterName, vizGroup) {
-  const g = vizGroup.append("g")
-    .attr("transform", `translate(${x},${y})`);
+  if (!treemap) return;
 
+  const g = vizGroup.append("g")
+    .attr("transform", `translate(${x || 0},${y || 0})`);
+
+  // Add paths for treemap cells
   g.selectAll("path")
-    .data(treemap.descendants().filter(d => d.depth > 0))
+    .data(treemap.descendants().filter(d => d.depth > 0 && d.polygon))
     .enter()
     .append("path")
     .attr("d", d => `M${d.polygon.join("L")}Z`)
-    //.attr("fill", clusterIndex === 'global' ? "#f0f0f0" : color(clusterIndex)) //d3.color(color(clusterIndex)).brighter(1.5) 
-    .attr("fill", clusterIndex === 'global' ? "#333333" : color(clusterIndex)) // Dark grey for global
-    //.attr("stroke", clusterIndex === 'global' ? "#d0d0d0" : "white")
+    .attr("fill", clusterIndex === 'global' ? "#333333" : color(clusterIndex))
     .attr("stroke", "white")
-    //.attr("stroke","white") // clusterIndex === 'global' ? "#333" : color(clusterIndex))
-    .attr("stroke-width",0.5);
+    .attr("stroke-width", 0.5);
 
+  // Add text labels
   g.selectAll("text")
-    .data(treemap.descendants().filter(d => d.depth > 0))
+    .data(treemap.descendants().filter(d => d.depth > 0 && d.polygon))
     .enter()
     .append("text")
-    .attr("x", d => d.polygon.reduce((acc, point) => acc + point[0], 0) / d.polygon.length)
-    .attr("y", d => d.polygon.reduce((acc, point) => acc + point[1], 0) / d.polygon.length)
+    .attr("x", d => {
+      const x = d.polygon.reduce((acc, point) => acc + point[0], 0) / d.polygon.length;
+      return isNaN(x) ? 0 : x;
+    })
+    .attr("y", d => {
+      const y = d.polygon.reduce((acc, point) => acc + point[1], 0) / d.polygon.length;
+      return isNaN(y) ? 0 : y;
+    })
     .attr("text-anchor", "middle")
     .attr("dominant-baseline", "central")
-    .attr("font-size", d => clusterIndex === 'global' ? 
-      Math.min(24, d.data[1] * 4000) + "px" :  // Larger font for global
-      Math.min(20, d.data[1] * 800) + "px")
-     .attr("fill", "white") // White text for all clusters
-    //.attr("font-size", d => Math.min(20, d.data[1] * 1000) + "px")  // Adjusted scaling factor
-     //.attr("fill", clusterIndex === 'global' ? "#333" : color(clusterIndex))
-    //.attr("fill", clusterIndex === 'global' ? "#333" : "white") // Set color based on cluster type
-    .text(d => d.data[0]);  // Display the theme word
+    .attr("font-size", d => {
+      const fontSize = calculateFontSize(d.data[1], clusterIndex === 'global');
+      return `${fontSize}px`;
+    })
+    .attr("fill", "white")
+    .text(d => d.data[0]);
 
-  // Add hover-over tooltip
+  // Add tooltips
   const tooltip = d3.select("body").append("div")
     .attr("class", "tooltip")
     .style("opacity", 0);
 
-  // Update tooltip
   g.selectAll("path")
     .on("mouseover", function(event, d) {
       tooltip.transition()
@@ -203,7 +261,7 @@ function drawVoronoiTreemap(treemap, x, y, clusterIndex, clusterName, vizGroup) 
         .style("left", (event.pageX + 10) + "px")
         .style("top", (event.pageY - 28) + "px");
     })
-    .on("mouseout", function(d) {
+    .on("mouseout", function() {
       tooltip.transition()
         .duration(500)
         .style("opacity", 0);
@@ -211,6 +269,11 @@ function drawVoronoiTreemap(treemap, x, y, clusterIndex, clusterName, vizGroup) 
 }
 
 function getClipPolygon(startAngle, endAngle, innerRadius, outerRadius) {
+  if (isNaN(startAngle) || isNaN(endAngle) || isNaN(innerRadius) || isNaN(outerRadius)) {
+    console.warn('Invalid parameters in getClipPolygon:', {startAngle, endAngle, innerRadius, outerRadius});
+    return [[0,0]];
+  }
+
   const step = Math.PI / 180;
   const points = [];
 
@@ -225,10 +288,11 @@ function getClipPolygon(startAngle, endAngle, innerRadius, outerRadius) {
 }
 
 function createVisualization() {
+  console.log("Starting visualization creation...");
+  const config = getConfigFromUI();
+  console.log("Current config:", config);
+  
   initializeVisualization();
-
-  const topNWords = +document.getElementById("topNWords").value;
-  const rotationAngle = +document.getElementById("rotationAngle").value || -40;
 
   const staticGroup = svg.append("g")
     .attr("transform", `translate(${width/2},${height/2})`);
@@ -237,54 +301,63 @@ function createVisualization() {
     .attr("transform", `translate(${width/2},${height/2})`);
 
   const clusters = Object.keys(clusterData).filter(k => k !== 'global');
-  console.log("Clusters:", clusters);
+  console.log("Processing clusters:", clusters);
   
   const {pie, middleArc} = createDonutRings(clusters, staticGroup, volumeData);
 
-  // Create Voronoi treemap for global cluster in the center
+  // Create global treemap
   if (clusterData['global']) {
+    console.log("Creating global treemap");
     const clipPolygon = getClipPolygon(0, 2 * Math.PI, 0, innerRadius);
-    const treemap = createVoronoiTreemap(clusterData['global'].slice(0, topNWords), clipPolygon, 'global');
-    drawVoronoiTreemap(treemap, 0, 0, 'global', 'Global', staticGroup);
+    const treemap = createVoronoiTreemap(
+      clusterData['global'].slice(0, config.wordCounts.global), 
+      clipPolygon, 
+      'global'
+    );
+    if (treemap) {
+      drawVoronoiTreemap(treemap, 0, 0, 'global', 'Global', staticGroup);
+    }
   }
 
-  // Create Voronoi treemaps for each cluster
+  // Create cluster treemaps
   pie(clusters).forEach((d, i) => {
     const cluster = clusterData[d.data];
     if (cluster) {
+      console.log(`Creating treemap for cluster ${d.data}`);
       const clipPolygon = getClipPolygon(d.startAngle, d.endAngle, middleRadius, outerRadius);
-      const treemap = createVoronoiTreemap(cluster.slice(0, topNWords), clipPolygon, i);
-      const centroid = middleArc.centroid(d);
-      drawVoronoiTreemap(treemap, centroid[0], centroid[1], i, d.data, rotatableGroup);
+      const treemap = createVoronoiTreemap(
+        cluster.slice(0, config.wordCounts.clusters), 
+        clipPolygon, 
+        i
+      );
+      if (treemap) {
+        const centroid = middleArc.centroid(d);
+        if (centroid && !isNaN(centroid[0]) && !isNaN(centroid[1])) {
+          drawVoronoiTreemap(treemap, centroid[0], centroid[1], i, d.data, rotatableGroup);
+        }
+      }
     }
   });
 
-  // Rotate only the treemaps
-  rotatableGroup.attr("transform", `translate(${width/2},${height/2}) rotate(${rotationAngle})`);
+  rotatableGroup.attr("transform", `translate(${width/2},${height/2}) rotate(${config.visualization.rotationAngle})`);
 }
 
-// Set default values for the inputs
-document.getElementById("topNWords").value = 100;
-document.getElementById("innerRadiusStart").value = 38;
-document.getElementById("innerRadiusEnd").value = 40;
-document.getElementById("outerRadiusStart").value = 90;
-document.getElementById("rotationAngle").value = -40;
+// Event listener for visualization updates
+document.getElementById("updateViz").addEventListener("click", createVisualization);
 
-// Load both data files
+// Load data and initialize visualization
 Promise.all([
   d3.json("proc_themes.json"),
   d3.json("cluster_volumes.json")
-]).then(([themeData, loadedVolumeData]) => {
+]).then(([themeData, volumeData]) => {
   clusterData = themeData;
-  volumeData = loadedVolumeData;
+  volumeData = volumeData;
 
-  console.log("Processed cluster data:", clusterData);
-  console.log("Cluster volumes (immediately after loading):", volumeData);
+  console.log("Loaded cluster data:", clusterData);
+  console.log("Loaded volume data:", volumeData);
 
-  // Call createVisualization in a separate tick to ensure data is fully processed
   setTimeout(createVisualization, 0);
 }).catch(error => {
-  console.error("Error loading data or drawing visualization:", error);
-  alert("Error loading data. Please check the console for more information.");
+  console.error("Error loading data:", error);
+  alert("Error loading data. Please check the console for details.");
 });
-
