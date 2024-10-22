@@ -164,9 +164,12 @@ function drawVoronoiTreemap(treemap, x, y, clusterIndex, clusterName, vizGroup) 
     .enter()
     .append("path")
     .attr("d", d => `M${d.polygon.join("L")}Z`)
-    .attr("fill", clusterIndex === 'global' ? "#f0f0f0" : d3.color(color(clusterIndex)).brighter(1.5))
-    .attr("stroke", clusterIndex === 'global' ? "#333" : color(clusterIndex))
-    .attr("stroke-width", 1);
+    //.attr("fill", clusterIndex === 'global' ? "#f0f0f0" : color(clusterIndex)) //d3.color(color(clusterIndex)).brighter(1.5) 
+    .attr("fill", clusterIndex === 'global' ? "#333333" : color(clusterIndex)) // Dark grey for global
+    //.attr("stroke", clusterIndex === 'global' ? "#d0d0d0" : "white")
+    .attr("stroke", "white")
+    //.attr("stroke","white") // clusterIndex === 'global' ? "#333" : color(clusterIndex))
+    .attr("stroke-width",0.5);
 
   g.selectAll("text")
     .data(treemap.descendants().filter(d => d.depth > 0))
@@ -176,8 +179,13 @@ function drawVoronoiTreemap(treemap, x, y, clusterIndex, clusterName, vizGroup) 
     .attr("y", d => d.polygon.reduce((acc, point) => acc + point[1], 0) / d.polygon.length)
     .attr("text-anchor", "middle")
     .attr("dominant-baseline", "central")
-    .attr("font-size", d => Math.min(12, d.data[1] * 1000) + "px")  // Adjusted scaling factor
-    .attr("fill", clusterIndex === 'global' ? "#333" : color(clusterIndex))
+    .attr("font-size", d => clusterIndex === 'global' ? 
+      Math.min(24, d.data[1] * 4000) + "px" :  // Larger font for global
+      Math.min(20, d.data[1] * 800) + "px")
+     .attr("fill", "white") // White text for all clusters
+    //.attr("font-size", d => Math.min(20, d.data[1] * 1000) + "px")  // Adjusted scaling factor
+     //.attr("fill", clusterIndex === 'global' ? "#333" : color(clusterIndex))
+    //.attr("fill", clusterIndex === 'global' ? "#333" : "white") // Set color based on cluster type
     .text(d => d.data[0]);  // Display the theme word
 
   // Add hover-over tooltip
