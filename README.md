@@ -1,14 +1,11 @@
 # ClusterWheel
-Visualisation of global / local themes
+Visualisation of Global vs Local themes
+
+This visualisation helps to explore central vs local themes in global news, but can easily be repurposed for any study where a global general centre, needs comparison with a set of local / specific interest groups.
 
 
-There is a synthetic theme generator produced by a bot, so the example test data may be ridiculous, but maybe it explains the point of the visualisation. It has three parts, a global centre, a ring of clusters, and a panel per cluster. 
-
-In the centre are the themes all clusters care about, the global themes.
-In the panels, are the themes that a particular cluster cares about.
-
-This helps visualise the local and global interests. Global governance on global interests.
-Locally governed local interests.
+## example 
+I suggest you import this into inkscape to make adjustments.
 
 <img src="https://github.com/kaito640/ClusterWheel/blob/main/assets/ClusterWheel.svg" width="560">
 
