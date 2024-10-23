@@ -22,12 +22,12 @@ const VIZ_CONFIG = {
   
   // Visualization settings
   visualization: {
-    padding: 120,
+    padding: 240,
     volumeScale: 1.2,
-    innerRadiusStart: 38,
+    innerRadiusStart: 33,
     innerRadiusEnd: 40,
-    outerRadiusStart: 90,
-    rotationAngle: -40
+    outerRadiusStart: 100,
+    rotationAngle: -35
   },
 
   // Treemap settings
@@ -35,7 +35,7 @@ const VIZ_CONFIG = {
     rotationOffset: 0,      // Additional rotation for treemap alignment
     radialOffset: 0,        // Offset from center point
     textRotationOffset: 0,  // Text rotation adjustment
-    radialPosition: 0.9     // 0 = middle, 1 = outer
+    radialPosition: 0.7     // 0 = middle, 1 = outer
   },
 
   // Colors
