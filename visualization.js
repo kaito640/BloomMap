@@ -42,6 +42,12 @@ const VIZ_CONFIG = {
   colorScheme: d3.schemeCategory10
 };
 
+// Add after VIZ_CONFIG definition
+const normalizeAngle = (angle) => {
+    angle = angle % (2 * Math.PI);
+    return angle < 0 ? angle + (2 * Math.PI) : angle;
+};
+
 // Global variables
 let svg, width, height, radius, innerRadius, middleRadius, outerRadius, color;
 let clusterData = {}, volumeData = {};
@@ -226,28 +232,61 @@ function createDonutRings(data, vizGroup, volumeData) {
     .attr("fill", (d, i) => d3.color(color(i)).darker(0.5))
     .attr("stroke", "none");
 
-  // Add cluster labels
+  // Cluster name labels near inner ring
   g.selectAll("text.cluster-label")
     .data(pie(data))
     .enter()
     .append("text")
     .attr("class", "cluster-label")
     .attr("transform", d => {
-      const [x, y] = arc.innerRadius(innerRadius + 5).centroid(d);
-      return `translate(${x},${y})`;
+      const angle = normalizeAngle((d.startAngle + d.endAngle) / 2 - Math.PI / 2);
+      const radius = innerRadius + 15;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      //return `translate(${x},${y}) rotate(${(angle + Math.PI/2) * (180/Math.PI)})`;
+      return `translate(${x},${y})`; // keep labels horizontal
     })
     .attr("text-anchor", "middle")
-    .attr("dominant-baseline", "central")
+    .attr("dominant-baseline", "middle")
     .attr("fill", "white")
     .attr("font-size", "12px")
     .attr("font-weight", "bold")
-    .text((d) => {
-      const volume = volumeData[d.data] || 0;
-      return `${volume}`;
-    });
+    .text(d => d.data);
 
-  return {pie, middleArc};
-}
+    // Add volume count labels 
+    g.selectAll("text.volume-label")
+        .data(pie(data))
+        .enter()
+        .append("text")
+        .attr("class", "volume-label")
+        .attr("transform", d => {
+         const volume = volumeData[d.data] || 0;
+         // Calculate position along the middle of the sector
+         const angle = (d.startAngle + d.endAngle) / 2;
+         const outerRadiusAdjusted = middleRadius + volumeScale(volume);
+         // Convert angle to x,y coordinates
+         const x = Math.cos(angle - Math.PI / 2) * outerRadiusAdjusted;
+         const y = Math.sin(angle - Math.PI / 2) * outerRadiusAdjusted;
+         return `translate(${x},${y})`;
+        })
+        .attr("text-anchor", d => {
+          const angle = (d.startAngle + d.endAngle) / 2;
+          // Adjust text alignment based on position in circle
+          if (angle < Math.PI * 0.25 || angle > Math.PI * 1.75) return "start";
+          if (angle >= Math.PI * 0.75 && angle <= Math.PI * 1.25) return "end";
+          return "middle";
+        })
+        .attr("dominant-baseline", d => {
+          const angle = (d.startAngle + d.endAngle) / 2;
+          if (angle < Math.PI) return "baseline";
+          return "hanging";
+        })
+        .attr("fill", "black")
+        .attr("font-size", "10px")
+        .text(d => volumeData[d.data] || 0);
+
+        return {pie, middleArc};
+    }
 
 function createVoronoiTreemap(data, clipPolygon, clusterIndex) {
   if (!data || !clipPolygon) {
