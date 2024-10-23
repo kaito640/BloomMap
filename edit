@@ -1,1 +1,0 @@
-const centroidAngle = d.startAngle + wedgeAngle*5;
