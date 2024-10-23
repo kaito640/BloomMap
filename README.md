@@ -13,9 +13,9 @@ A sophisticated D3.js visualization that displays hierarchical topic clusters in
 ## Overview
 
 This visualization consists of three main components:
-1. A central topic network displayed as a hexagonal treemap
-2. Radial volume indicators showing relative cluster sizes
-3. Peripheral topic clusters arranged in a circular pattern, each containing their own treemap
+1. A central topic network displayed as a treemap
+2. Radial volume indicators showing relative cluster sizes, relative the largest of the peripheral clusers
+3. Peripheral topic clusters arranged in a circular pattern, each containing their own treemap having TopN themes
 
 ## Features
 
