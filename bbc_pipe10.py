@@ -15,9 +15,9 @@ nltk.download('punkt', quiet=True)
 nltk.download('stopwords', quiet=True)
 
 # Parameters
-N_TOP_THEMES = 40  # Number of top themes to display per cluster
-N_TOPICS = 100
-MAX_CLUSTERS = 40 # Maximum number of clusters to consider
+N_TOP_THEMES = 20  # Number of top themes to display per cluster
+N_TOPICS = 20
+MAX_CLUSTERS = 100 # Maximum number of clusters to consider
 
 # Function to preprocess text
 def preprocess_text(text):
@@ -63,11 +63,11 @@ data = pd.read_csv('data/bbc-news-data.csv', sep='\t')
 data['processed_content'] = data['content'].apply(preprocess_text)
 
 # Create TF-IDF representation
-vectorizer = TfidfVectorizer(max_features=10000, stop_words='english', max_df=0.5, min_df=2)
+vectorizer = TfidfVectorizer(max_features=20000, stop_words='english', max_df=0.5, min_df=2)
 tfidf_matrix = vectorizer.fit_transform(data['processed_content'])
 
 # Perform topic modeling using NMF
-nmf_model = NMF(n_components=N_TOPICS, random_state=42)
+nmf_model = NMF(n_components=N_TOPICS, random_state=42, max_iter=200)
 nmf_output = nmf_model.fit_transform(tfidf_matrix)
 
 # Get the top words for each topic
