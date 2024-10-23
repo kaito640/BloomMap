@@ -1,38 +1,153 @@
-# ClusterWheel
-ClusterWheel is visual exploration of Central vs Peripheral themes.
-
-## Thought Experiment
-
-During a pandemic, all employees of a global organisation are asked an open question - how do they feel about working in a pandemic?  We organise the survey to collect information about who people are, like their jobs, and their demographics, and collect their responses. 
-
-If 100k responses are collected. How can we study the responses?
-
-Ideally we'd like to produce a "balanced" study that shows the global themes everyone is worried about.
-And we need to weigh that against the important local themes being raised by specific interest groups, or demographic groups. 
-
-When you have those dimensions that tag a user - it's easy to get a regional view, or a organisational view. But what happens when this is not collected in the capture phase?
-Do we give up? No - we can use data science to try and rebuild this global / local view - and present it effectively.
-
-This is how our visualisation exploring central vs local themes came about. We present it here with demo grade data, the BBC kaggle dataset containing global news, but can easily be repurposed for any study where a global general centre, needs comparison with a set of local / specific interest groups.
+# BloomMap
+BloomMap is visual exploration of Central vs Peripheral themes in large text collections.
 
 
-## Output
+## What it looks like
 The code provided will generate this diagram.
-<img src="https://github.com/kaito640/ClusterWheel/blob/main/assets/ClusterWheel.svg" width="560">
+<img src="https://github.com/kaito640/ClusterWheel/blob/main/assets/ClusterWheel.svg" width="800">
 
-
-# Methodology
-
-## Params you can set in the pipeline:
-# Methodology: Radial Clustering Visualization for News Articles
+## About BloomMap Visualisations
+A sophisticated D3.js visualization that displays hierarchical topic clusters in a radial layout, combining treemaps, volume indicators, and hierarchical relationships in an intuitive flower-like pattern.
 
 ## Overview
 
-This document outlines the methodological approach used to create a hierarchical visualization of news articles. The method combines topic modeling, hierarchical clustering, and specialized visualization techniques to reveal thematic structures in news content.
+This visualization consists of three main components:
+1. A central topic network displayed as a hexagonal treemap
+2. Radial volume indicators showing relative cluster sizes
+3. Peripheral topic clusters arranged in a circular pattern, each containing their own treemap
 
-## Data Processing Pipeline
+## Features
 
-### 1. Text Preprocessing
+- Interactive visualization of hierarchical topic clusters
+- Volume-based indicators showing relative cluster sizes
+- Configurable parameters for fine-tuning the visualization:
+  - Font sizes for global and cluster text
+  - Word counts for central and peripheral clusters
+  - Layout settings (padding, volume scale)
+  - Radius settings for different components
+  - Rotation and positioning controls
+
+## Dependencies
+
+- D3.js v6
+- D3 Weighted Voronoi
+- D3 Voronoi Map
+- D3 Voronoi Treemap
+
+```html
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<script src="https://rawcdn.githack.com/Kcnarf/d3-weighted-voronoi/v1.1.3/build/d3-weighted-voronoi.js"></script>
+<script src="https://rawcdn.githack.com/Kcnarf/d3-voronoi-map/v2.1.1/build/d3-voronoi-map.js"></script>
+<script src="https://rawcdn.githack.com/Kcnarf/d3-voronoi-treemap/v1.1.2/build/d3-voronoi-treemap.js"></script>
+```
+
+## Data Format
+
+The visualization expects two JSON files:
+
+### proc_themes.json
+Contains the hierarchical topic data:
+```json
+{
+  "global": [[topic, weight], ...],
+  "cluster1": [[topic, weight], ...],
+  "cluster2": [[topic, weight], ...],
+  ...
+}
+```
+
+### cluster_volumes.json
+Contains volume data for each cluster:
+```json
+{
+  "global": value,
+  "cluster1": value,
+  "cluster2": value,
+  ...
+}
+```
+
+## Usage
+
+1. Include the required dependencies
+2. Set up an SVG container:
+```html
+<svg id="visualization" width="1400" height="1400"></svg>
+```
+3. Include the visualization script
+4. Initialize with your data:
+```javascript
+Promise.all([
+  d3.json("proc_themes.json"),
+  d3.json("cluster_volumes.json")
+]).then(([themeData, volumeData]) => {
+  // Visualization will automatically render
+});
+```
+
+## Configuration
+
+The visualization can be customized through the UI controls or by modifying the `VIZ_CONFIG` object:
+
+```javascript
+const VIZ_CONFIG = {
+  // Dimensions
+  width: 1400,
+  height: 1400,
+  
+  // Font sizes
+  fonts: {...},
+  
+  // Word counts
+  wordCounts: {...},
+  
+  // Visualization settings
+  visualization: {...},
+
+  // Treemap settings
+  treemap: {...}
+};
+```
+
+## Controls
+
+- **Font Sizes**: Adjust text size ranges for global and cluster labels
+- **Word Counts**: Control the number of words shown in central and peripheral clusters
+- **Layout Settings**: Modify padding and volume scaling
+- **Radius Settings**: Fine-tune the radial layout
+- **Treemap Settings**: Adjust rotation and positioning of peripheral clusters
+- **Rotation**: Control the overall rotation of the visualization
+
+## Features
+
+- SVG Export: Download the visualization as an SVG file
+- Interactive Updates: Real-time visualization updates when parameters change
+- Responsive Layout: Automatically adjusts to container size
+- Consistent Text Orientation: Maintains readable text alignment
+- Color-coded Clusters: Visual distinction between different topic groups
+
+## Limitations
+
+- Designed for datasets with a single central topic and multiple peripheral clusters
+- Best suited for 15-25 peripheral clusters
+- Text size automatically scales but may become unreadable with very small clusters
+- Requires modern browser support for D3.js and SVG rendering
+
+# BloomMap Data Pipeline
+
+
+## Clustering Pipeline Methodology
+### Workflow
+
+We provide you the data pipeline code, which will generate the exact files you need to drive the visualisation. You just need to format your responses into the input data format. From there, the data science is detailed below. Once you have rendered the D3.js image, you can download it using the button and post process and beautify the viz in Inkscape.
+
+### Data Science Method
+
+We create a hierarchical visualization of news articles using a method that combines topic modeling, hierarchical clustering, and specialized visualization techniques to reveal thematic structures in news content.
+
+### Data Processing Pipeline
+
+#### 1. Text Preprocessing
 ```python
 def preprocess_text(text):
     text = re.sub(r'[^\w\s]', '', text.lower())
@@ -45,9 +160,9 @@ def preprocess_text(text):
 - Stop word removal using NLTK
 - Tokenization for feature extraction
 
-### 2. Feature Extraction
+#### 2. Feature Extraction
 
-#### TF-IDF Vectorization
+##### TF-IDF Vectorization
 ```python
 vectorizer = TfidfVectorizer(
     max_features=10000, 
@@ -62,7 +177,7 @@ Key Parameters:
 - `max_df=0.5`: Removes overly common terms
 - `min_df=2`: Removes rare terms
 
-### 3. Topic Modeling
+#### 3. Topic Modeling
 
 We use Non-negative Matrix Factorization (NMF) for topic modeling:
 ```python
@@ -73,14 +188,14 @@ nmf_model = NMF(
 nmf_output = nmf_model.fit_transform(tfidf_matrix)
 ```
 
-#### Topic Model Validation
+##### Topic Model Validation
 - Coherence scores assessment
 - Manual review of top terms per topic
 - Stability analysis across different random seeds
 
-### 4. Cluster Analysis
+#### 4. Cluster Analysis
 
-#### Optimal Cluster Determination
+##### Optimal Cluster Determination
 ```python
 def find_optimal_clusters(data, max_clusters):
     silhouette_scores = []
@@ -92,13 +207,13 @@ def find_optimal_clusters(data, max_clusters):
     return silhouette_scores.index(max(silhouette_scores)) + 2
 ```
 
-#### Clustering Method
+##### Clustering Method
 We use Agglomerative Clustering for its:
 - Hierarchical structure preservation
 - Stability across runs
 - No assumptions about cluster shape
 
-### 5. Theme Importance Calculation
+#### 5. Theme Importance Calculation
 
 For each cluster, themes are ranked by importance:
 ```python
@@ -113,81 +228,5 @@ def get_cluster_themes(cluster_docs, n_themes):
     return sorted(themes, key=lambda x: x[1], reverse=True)[:n_themes]
 ```
 
-## Visualization Design Decisions
 
-### 1. Structural Layout
-
-#### Central (Global) Cluster
-- Contains general interest stories
-- Larger themes with broader appeal
-- Light background for contrast with specialized clusters
-
-#### Radial Clusters
-- Specialized interest stories
-- Volume-weighted visualization
-- Color-coded for theme differentiation
-
-### 2. Treemap Implementation
-
-#### Voronoi Treemap Advantages
-- Efficient space utilization
-- Natural organic shapes
-- Better accommodation of varying text lengths
-
-#### Size Encoding
-```javascript
-const volumeScale = d3.scaleLinear()
-    .domain([0, d3.max(localVolumes)*1.2])
-    .range([0, outerRadius - middleRadius]);
-```
-- Linear scaling of cluster volumes
-- 20% padding for visual clarity
-- Excludes global cluster from scale calculation
-
-### 3. Visual Encoding Choices
-
-#### Color Scheme
-- Categorical color palette for cluster differentiation
-- Dark backgrounds for specialized clusters
-- White text for readability
-- Consistent color mapping across visualization elements
-
-#### Text Size
-```javascript
-.attr("font-size", d => Math.min(20, d.data[1] * 1000) + "px")
-```
-- Dynamic scaling based on theme importance
-- Upper bound to maintain readability
-- Lower bound to ensure visibility
-
-## Parameter Optimization
-
-### Key Parameters and Their Effects
-
-1. Topic Modeling
-```python
-N_TOPICS = 100  # Number of topics to extract
-```
-- Tested range: 50-200
-- Optimal value determined by:
-  * Topic coherence scores
-  * Silhouette scores of resulting clusters
-  * Manual review of theme quality
-
-2. Theme Selection
-```python
-N_TOP_THEMES = 40  # Themes per cluster
-```
-- Balance between:
-  * Information density
-  * Visual clarity
-  * Processing performance
-
-3. Cluster Optimization
-```python
-MAX_CLUSTERS = 500  # Upper bound for cluster search
-```
-- Actual optimal clusters determined by:
-  * Silhouette score maximization
-  * Theme coherence within clusters
-  * Visual complexity management
+``
