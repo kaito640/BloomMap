@@ -7,8 +7,81 @@ The code provided will generate this diagram from the bbc news dataset found on 
 
 <img src="https://github.com/kaito640/ClusterWheel/blob/main/assets/ClusterWheel.svg" width="800">
 
-## About BloomMap Visualisations
-A sophisticated D3.js visualization that displays hierarchical topic clusters in a radial layout, combining treemaps, volume indicators, and hierarchical relationships in an intuitive flower-like pattern.
+
+## Quickstart
+
+### Getting Started
+
+#### Prerequisites
+- Python 3.8 or higher
+- Git
+- Modern web browser (Chrome, Firefox, or Safari recommended)
+
+#### Installation
+
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/bloommap.git
+cd bloommap
+```
+
+2. Create and activate a virtual environment
+```bash
+# On macOS and Linux:
+python3 -m venv env
+source env/bin/activate
+
+# On Windows:
+python -m venv env
+.\env\Scripts\activate
+```
+
+3. Install required Python packages
+```bash
+pip install -r requirements.txt
+```
+
+#### Running the Pipeline
+
+1. Process the BBC dataset using the provided pipeline:
+```bash
+python bbc_pipe10.py
+```
+This will:
+- Process the raw BBC news data
+- Generate the required JSON files (`proc_themes.json` and `cluster_volumes.json`)
+- Place them in the correct location for the visualization
+
+#### Viewing the Visualization
+
+1. Start a local web server:
+```bash
+python3 -m http.server 8000
+```
+
+2. Open your web browser and navigate to:
+```
+http://localhost:8000
+```
+
+You should now see the BloomMap visualization with the processed BBC dataset.
+
+#### Troubleshooting
+
+- If the visualization doesn't appear, check your browser's console for any JavaScript errors
+- Ensure both JSON files were generated successfully by the pipeline
+- Verify that your Python environment has all required packages installed
+- Check that no other service is running on port 8000 (if so, choose a different port)
+
+#### Using Your Own Data
+
+To use BloomMap with your own dataset, you'll need to:
+1. Modify the pipeline to process your input data
+2. Ensure your output follows the required JSON format (see Data Format section above)
+3. Place the generated JSON files in the same directory as index.html
+
+#  About the Visualisation
+BloomMap is a D3.j visualization that displays hierarchical topic clusters in a radial layout, combining treemaps, volume indicators, and hierarchical relationships in an intuitive flower-like pattern.
 
 ## Overview
 
