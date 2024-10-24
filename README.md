@@ -5,7 +5,7 @@ BloomMap is visual exploration of Central vs Peripheral themes in large text col
 ## What it looks like
 The code provided will generate this diagram from the bbc news dataset found on kaggle.
 
-<img src="https://github.com/kaito640/ClusterWheel/blob/main/assets/BloomMapExample.png" width=900">
+<img src="https://github.com/kaito640/ClusterWheel/blob/main/assets/BloomMapExample.svg" width=900">
 
 
 ## Quickstart
