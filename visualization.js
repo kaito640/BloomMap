@@ -195,11 +195,12 @@ function validateData(themeData, volumeData) {
     if (!Array.isArray(themeData[cluster])) {
       throw new Error(`Invalid data format for cluster: ${cluster}`);
     }
-    if (!volumeData[cluster] || isNaN(volumeData[cluster])) {
+    if (!volumeData[cluster] || isNaN(volumeData[cluster].volume)) {
       throw new Error(`Missing or invalid volume data for cluster: ${cluster}`);
     }
   });
 }
+
 
 // Display error messages to user
 function displayError(message) {
@@ -210,7 +211,6 @@ function displayError(message) {
   container.appendChild(errorDiv);
 }
 
-// Create donut rings structure
 function createDonutRings(data, vizGroup, volumeData) {
   console.log("Creating donut rings with data:", data);
   console.log("Raw volume data:", volumeData);
@@ -254,18 +254,15 @@ function createDonutRings(data, vizGroup, volumeData) {
 
   // Define volumeScale with robust global detection
   const volumes = Object.entries(volumeData)
-    .filter(([key, value]) => typeof value === 'number' && !isNaN(value));
+    .filter(([key, value]) => typeof value.volume === 'number' && !isNaN(value.volume));
   
   console.log("Valid volume entries:", volumes);
 
   // Separate global and local volumes
-  const globalVolume = volumes.find(([key, _]) => 
-    key.toLowerCase() === 'global'
-  )?.[1] || 0;
-
-  const localVolumes = volumes
-    .filter(([key, _]) => key.toLowerCase() !== 'global')
-    .map(([_, value]) => value);
+  const globalVolume = volumeData.global.volume;
+  const localVolumes = Object.keys(volumeData)
+    .filter(key => key !== 'global')
+    .map(key => volumeData[key].volume);
 
   if (localVolumes.length === 0) {
     console.error("No valid local volume data found");
@@ -283,7 +280,7 @@ function createDonutRings(data, vizGroup, volumeData) {
     .append("path")
     .attr("class", "volume")
     .attr("d", (d) => {
-      const volume = volumeData[d.data] || 0;
+      const volume = volumeData[d.data].volume || 0;
       const outerRadiusAdjusted = middleRadius + volumeScale(volume);
       return arc
         .innerRadius(middleRadius)
@@ -334,7 +331,7 @@ function createDonutRings(data, vizGroup, volumeData) {
     .append("text")
     .attr("class", "volume-label")
     .attr("transform", d => {
-      const volume = volumeData[d.data] || 0;
+      const volume = volumeData[d.data].volume || 0;
       const angle = (d.startAngle + d.endAngle) / 2;
       const outerRadiusAdjusted = middleRadius + volumeScale(volume);
       const x = Math.cos(angle - Math.PI / 2) * outerRadiusAdjusted;
@@ -353,10 +350,11 @@ function createDonutRings(data, vizGroup, volumeData) {
     })
     .attr("fill", "black")
     .attr("font-size", "10px")
-    .text(d => volumeData[d.data] || 0);
+    .text(d => volumeData[d.data].volume || 0);
 
   return {pie, middleArc};
 }
+
 
 // Create Voronoi treemap
 function createVoronoiTreemap(data, clipPolygon, clusterIndex) {
