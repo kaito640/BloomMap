@@ -68,6 +68,7 @@ function getConfigFromUI() {
       globalMax: +document.getElementById("globalFontMax").value,
       clusterMin: +document.getElementById("clusterFontMin").value,
       clusterMax: +document.getElementById("clusterFontMax").value,
+      clusterLabelSize: +document.getElementById("clusterLabelSize").value,
       volumeLabelSize: 11
     },
     wordCounts: {
@@ -211,7 +212,7 @@ function displayError(message) {
   container.appendChild(errorDiv);
 }
 
-function createDonutRings(data, vizGroup, volumeData) {
+function createDonutRings(data, vizGroup, volumeData, config) {
   console.log("Creating donut rings with data:", data);
   console.log("Raw volume data:", volumeData);
   
@@ -304,25 +305,45 @@ function createDonutRings(data, vizGroup, volumeData) {
     .attr("fill", (d, i) => d3.color(color(i)).darker(0.5))
     .attr("stroke", "none");
 
-  // Cluster name labels near inner ring
+  // Cluster name labels along volume bars
+  // In the createDonutRings function, update the cluster labels section:
+
   g.selectAll("text.cluster-label")
     .data(pie(data))
     .enter()
     .append("text")
     .attr("class", "cluster-label")
     .attr("transform", d => {
-      const angle = normalizeAngle((d.startAngle + d.endAngle) / 2 - Math.PI / 2);
-      const radius = innerRadius + 15;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-      return `translate(${x},${y})`;
+      const angle = (d.startAngle + d.endAngle) / 2;
+      // Position text just slightly outside the middle radius
+      const labelRadius = middleRadius + 5; // Add small offset (5px) from middle radius
+      const x = Math.cos(angle - Math.PI / 2) * labelRadius;
+      const y = Math.sin(angle - Math.PI / 2) * labelRadius;
+      
+      // Rotate text to follow the radius
+      let degrees = (angle - Math.PI / 2) * 180 / Math.PI;
+      
+      // Adjust text rotation to keep it readable
+      if (angle > Math.PI) {
+        degrees += 180;
+      }
+      
+      return `translate(${x},${y}) rotate(${degrees})`;
     })
-    .attr("text-anchor", "middle")
+    .attr("text-anchor", d => {
+      const angle = (d.startAngle + d.endAngle) / 2;
+      // Always anchor at the start of the text (near center)
+      return angle > Math.PI ? "end" : "start";
+    })
     .attr("dominant-baseline", "middle")
-    .attr("fill", "white")
-    .attr("font-size", "12px")
+    .attr("fill", (d, i) => {
+      const baseColor = d3.color(color(i));
+      return baseColor.darker(1.5);
+    })
+    .attr("font-size", `${config.fonts.clusterLabelSize}px`)
     .attr("font-weight", "bold")
     .text(d => d.data);
+
 
   // Add volume count labels
   g.selectAll("text.volume-label")
@@ -492,7 +513,12 @@ function createVisualization() {
     const pieData = pie(clusters);
 
     // Create donut rings first
-    const {middleArc} = createDonutRings(clusters, staticGroup, volumeData);
+    //const {middleArc} = createDonutRings(clusters, staticGroup, volumeData);
+    //const config = getConfigFromUI(); // Make sure this is at the top of createVisualization
+    const {middleArc} = createDonutRings(clusters, staticGroup, volumeData, config); // Pass config as parameter
+
+
+
 
     // Create global treemap
     if (clusterData['global']) {
